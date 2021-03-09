@@ -170,13 +170,45 @@ void OnTick()
                   Print("Sell Order Failed! :: ,", GetLastError());
                }
             }         
-         }      
+         }    
+           
+         // Set Cur price on orders
+         double yesterdayAtr = iATR(Symbol(), baseTimeFrame, 1, 1);
+         
+         for(int i= 0; i< OrdersTotal(); i++){
+            if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) {
+               if(OrderMagicNumber() == MagicNo && OrderSymbol() == Symbol()) {
+                  if (OrderType() == OP_BUY){
+                     if(OrderStopLoss()== 0){
+                        if(OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice() - yesterdayAtr * 0.5, 0, 0, White)){
+                           Print("Stop Set on Buy Order");                        
+                        }
+                        else {
+                           Print("Failed on set Stop on Buy Order");
+                        }
+                        break;
+                     }
+                  }
+                  else if (OrderType() == OP_SELL) {
+                     if (OrderStopLoss() == 0){
+                        if(OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice() + yesterdayAtr * 0.5, 0, 0, White)){
+                           Print("Stop Set on Sell Order");                        
+                        }
+                        else {
+                           Print("Failed on set Stop on Sell Order");
+                        }
+                        break;
+                     }
+                  }
+               }
+            }
+         }
       }
   }
 
 double getPossibleLotSize(double atrValue) {
    double totalAccountBalance = AccountBalance();
    double maxRiskPerTrade = totalAccountBalance * Risk;
-   double possibleLot = maxRiskPerTrade / (1000000 * 2 * ATRportion * atrValue);
+   double possibleLot = maxRiskPerTrade / (100000 * 0.5 * atrValue);
    return possibleLot;
 }
