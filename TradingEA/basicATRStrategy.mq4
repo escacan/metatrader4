@@ -57,6 +57,9 @@ void OnTick()
 
       int OpenRes = -1;
       bool CloseSuccess = false;
+
+      MqlTick last_tick;
+      SymbolInfoTick(,last_tick);
             
       // When New day Started
       if (strDate.day != currentDate) {
@@ -216,7 +219,7 @@ void OnTick()
 
 double getPossibleLotSize(double atrValue) {
       double tradableLotSize = 0;
-      double ATR100forSL = atrValue / MarketInfo(NULL, MODE_TICKSIZE) * MarketInfo(NULL, MODE_TICKVALUE);
+      double ATR100forSL = atrValue / MarketInfo(Symbol(), MODE_TICKSIZE) * MarketInfo(Symbol(), MODE_TICKVALUE);
       double expectedSL = ATR100forSL * ATRSLportion; // sl price for 1 lot
       PrintFormat("Expected SL Price per 1 Lot : %f", expectedSL);
       
@@ -224,17 +227,17 @@ double getPossibleLotSize(double atrValue) {
       PrintFormat("Account : %f,  Max Lisk per trade : %f", AccountBalance(), maxRiskForAccount);
       double maxLotBasedOnSL = maxRiskForAccount / expectedSL;
       
-      double tradableMinLotSize = MarketInfo(NULL, MODE_MINLOT);
+      double tradableMinLotSize = MarketInfo(Symbol(), MODE_MINLOT);
       double requiredMinBalance = tradableMinLotSize * expectedSL / Risk;
       PrintFormat("Required Minimum Account : %f", requiredMinBalance);
       
       // PrintFormat("Lot Size Per SL : %f", maxLotBasedOnSL);
       
       if (AccountBalance() < requiredMinBalance) {
-         PrintFormat("Available Min Lot Size : %f", MarketInfo(NULL, MODE_MINLOT));
+         PrintFormat("Available Min Lot Size : %f", MarketInfo(Symbol(), MODE_MINLOT));
          PrintFormat("You need at least %f for risk management. Find other item.", requiredMinBalance);
       }
-      else if (MarketInfo(NULL, MODE_MINLOT) > maxLotBasedOnSL) {
+      else if (MarketInfo(Symbol(), MODE_MINLOT) > maxLotBasedOnSL) {
          tradableLotSize = maxLotBasedOnSL - MathMod(maxLotBasedOnSL, tradableMinLotSize);
          PrintFormat("What you wanted : %f\nTradable Size : %f", maxLotBasedOnSL, tradableLotSize);
       }
