@@ -53,8 +53,8 @@ void OnTick()
       
       bool canBuy = true;
       bool canSell = true;
-      // if (BUY_TDW != 7) canBuy = strDate.day_of_week == BUY_TDW;
-      // if (SELL_TDW != 7) canSell = strDate.day_of_week == SELL_TDW;
+      if (BUY_TDW != 7) canBuy = strDate.day_of_week == BUY_TDW;
+      if (SELL_TDW != 7) canSell = strDate.day_of_week == SELL_TDW;
 
       int OpenRes = -1;
       bool CloseSuccess = false;
@@ -82,6 +82,7 @@ void OnTick()
                            CloseSuccess = OrderClose(OrderTicket(), OrderLots(), Bid, 3, White);
                            if (CloseSuccess){
                               Print("Bailout Buy Order");
+                              total--;
                            }
                            else {
                               Print("Bailout Buy Failed, ", GetLastError());
@@ -94,6 +95,7 @@ void OnTick()
                            CloseSuccess = OrderClose(OrderTicket(), OrderLots(), Ask, 3, White);
                            if (CloseSuccess) {
                               Print("Bailout Sell Order");
+                              total--;
                            }
                            else {
                               Print("Bailout Sell Failed, ", GetLastError());
@@ -127,6 +129,7 @@ void OnTick()
                            Print("Sell Order Exist");
                            if(OrderClose(OrderTicket(), OrderLots(), Ask, 3, White)){
                               Print("Buy Momentum is found. Close Sell Order");
+                              total--;
                               break;                           
                            }
                            else {
@@ -138,11 +141,12 @@ void OnTick()
                }
             }
             
-            if (canBuy){
+            if (total == 0 && canBuy){
                Print("BUY Order Block");
                OpenRes = OrderSend(Symbol(), OP_BUY, possibleLotSize, Ask, 3, 0, 0, "Order Buy", MagicNo, 0, Green);            
                if(OpenRes){
-                  Print("Buy Order");               
+                  Print("Buy Order");  
+                  total++;             
                }
                else{
                   Print("Buy Order Failed! : ,", GetLastError());
@@ -164,6 +168,7 @@ void OnTick()
                            Print("Buy Order Exist");
                            if(OrderClose(OrderTicket(), OrderLots(), Bid, 3, White)){
                               Print("Sell Momentum is found. Close Buy Order");
+                              total--;
                               break;
                            }
                            else{
@@ -175,12 +180,13 @@ void OnTick()
                }
             }
             
-            if (canSell) {
+            if (total == 0 && canSell) {
                Print("SELL Order Block");
 
                OpenRes = OrderSend(Symbol(), OP_SELL, possibleLotSize, Bid, 3, 0, 0, "Order Sell", MagicNo, 0, Blue);
                if (OpenRes){
-                  Print("Sell Order");               
+                  Print("Sell Order");  
+                  total++;             
                }
                else {
                   Print("Sell Order Failed! :: ,", GetLastError());
@@ -188,13 +194,13 @@ void OnTick()
             }         
          } 
 
-         if (OrdersTotal() > 0) {
+         if (total > 0) {
             Print("StopLoss setting block");   
             
             // Set Cur price on orders
             double yesterdayAtr = iATR(Symbol(), baseTimeFrame, 1, 1);
             
-            for(int i= 0; i< OrdersTotal(); i++){
+            for(int i= 0; i< total; i++){
                if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) {
                   if(OrderMagicNumber() == MagicNo && OrderSymbol() == Symbol()) {
                      if (OrderType() == OP_BUY){
