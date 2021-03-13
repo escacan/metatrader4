@@ -12,6 +12,8 @@ extern int MagicNo = 1;
 //--- input parameters
 input double   ATRportion = 0.6;
 input double   Risk = 0.15;
+input double   BUY_TDW = 7;   // (0-Sunday, 1-Monday, ... ,6-Saturday)
+input double   SELL_TDW = 7;   // (0-Sunday, 1-Monday, ... ,6-Saturday)
 
 //--- Global Var
 ENUM_TIMEFRAMES baseTimeFrame = PERIOD_D1;
@@ -47,6 +49,11 @@ void OnTick()
       MqlDateTime strDate;
       TimeToStruct(tempDate, strDate);
       
+      bool canBuy = true;
+      bool canSell = true;
+      if (BUY_TDW != 7) canBuy = strDate.day_of_week == BUY_TDW;
+      if (SELL_TDW != 7) canSell = strDate.day_of_week == SELL_TDW;
+
       int OpenRes = -1;
       bool CloseSuccess = false;
             
@@ -126,7 +133,7 @@ void OnTick()
                }
             }
             
-            if (curPos == 0){
+            if (curPos == 0 && canBuy){
                OpenRes = OrderSend(Symbol(), OP_BUY, possibleLotSize, Ask, 3, 0, 0, "Order Buy", MagicNo, 0, Green);            
                if(OpenRes){
                   curPos= 1;
@@ -160,7 +167,7 @@ void OnTick()
                }
             }
             
-            if (curPos == 0) {
+            if (curPos == 0 && canSell) {
                OpenRes = OrderSend(Symbol(), OP_SELL, possibleLotSize, Bid, 3, 0, 0, "Order Sell", MagicNo, 0, Blue);
                if (OpenRes){
                   curPos = 2;
