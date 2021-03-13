@@ -56,9 +56,6 @@ void OnTick()
       if (BUY_TDW != 7) canBuy = strDate.day_of_week == BUY_TDW;
       if (SELL_TDW != 7) canSell = strDate.day_of_week == SELL_TDW;
 
-      int OpenRes = -1;
-      bool CloseSuccess = false;
-
       // When New day Started
       if (strDate.day != currentDate) {
          currentDate = strDate.day;
@@ -69,51 +66,15 @@ void OnTick()
          
          PrintFormat("Today: %d, OpenPrice: %f, yesterday ATR: %f", currentDate, curOpen, yesterdayAtr); 
 
-         // Bailout Exit                          
-         if (total > 0) {
-            Print("Bailout Exit Condition Check");
-            for (int idx = 0; idx < total; idx++){
-               if (OrderSelect(idx, SELECT_BY_POS, MODE_TRADES)) {
-                  if (OrderMagicNumber() == MagicNo && OrderSymbol() == Symbol()){
-                     if (OrderType() == OP_BUY) {
-                        PrintFormat("Order Info :: Today's Open : %f, OrderOpenPrice : %f", curOpen, OrderOpenPrice());
-                     
-                        if (curOpen > OrderOpenPrice()) {
-                           CloseSuccess = OrderClose(OrderTicket(), OrderLots(), Bid, 3, White);
-                           if (CloseSuccess){
-                              Print("Bailout Buy Order");
-                              total--;
-                           }
-                           else {
-                              Print("Bailout Buy Failed, ", GetLastError());
-                           }
-                        }
-                     }
-                     else if (OrderType() == OP_SELL) {
-                        PrintFormat("Order Info :: Today's Open : %f, OrderOpenPrice : %f", curOpen, OrderOpenPrice());
-                        if (curOpen < OrderOpenPrice()) {
-                           CloseSuccess = OrderClose(OrderTicket(), OrderLots(), Ask, 3, White);
-                           if (CloseSuccess) {
-                              Print("Bailout Sell Order");
-                              total--;
-                           }
-                           else {
-                              Print("Bailout Sell Failed, ", GetLastError());
-                           }
-                         }                        
-                     }
-                  }
-               }
-            }
-         }
+         total = bailoutOrders(total, curOpen);
          
          possibleLotSize = getPossibleLotSize(yesterdayAtr);
          targetBuyPrice = curOpen + targetRange;
          targetSellPrice = curOpen - targetRange;   
-
-         PrintFormat("Lot Size : %f, Target Buy : %f, Target Sell : %f", possibleLotSize, targetBuyPrice, targetSellPrice);
       }
       else {
+         int OpenRes = -1;
+         
          if (Ask >= targetBuyPrice) {
             PrintFormat("Cur Ask : %f, target Buy : %f", Ask, targetBuyPrice);
 
@@ -260,3 +221,46 @@ double getPossibleLotSize(double atrValue) {
       
       return tradableLotSize;      
 }
+
+int bailoutOrders(int totalOrderCount, double openPrice) {
+      bool CloseSuccess = false;
+
+      if (totalOrderCount > 0) {
+         Print("Bailout Exit Condition Check");
+         for (int idx = 0; idx < totalOrderCount; idx++){
+            if (OrderSelect(idx, SELECT_BY_POS, MODE_TRADES)) {
+               if (OrderMagicNumber() == MagicNo && OrderSymbol() == Symbol()){
+                  if (OrderType() == OP_BUY) {
+                     PrintFormat("Order Info :: Today's Open : %f, OrderOpenPrice : %f", openPrice, OrderOpenPrice());
+                  
+                     if (openPrice > OrderOpenPrice()) {
+                        CloseSuccess = OrderClose(OrderTicket(), OrderLots(), Bid, 3, White);
+                        if (CloseSuccess){
+                           Print("Bailout Buy Order");
+                           totalOrderCount--;
+                        }
+                        else {
+                           Print("Bailout Buy Failed, ", GetLastError());
+                        }
+                     }
+                  }
+                  else if (OrderType() == OP_SELL) {
+                     PrintFormat("Order Info :: Today's Open : %f, OrderOpenPrice : %f", openPrice, OrderOpenPrice());
+                     if (openPrice < OrderOpenPrice()) {
+                        CloseSuccess = OrderClose(OrderTicket(), OrderLots(), Ask, 3, White);
+                        if (CloseSuccess) {
+                           Print("Bailout Sell Order");
+                           totalOrderCount--;
+                        }
+                        else {
+                           Print("Bailout Sell Failed, ", GetLastError());
+                        }
+                        }                        
+                  }
+               }
+            }
+         }
+      }
+
+      return totalOrderCount;
+   }
