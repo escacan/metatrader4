@@ -15,6 +15,7 @@ input double   ATRSLportion = 0.5;
 input double   Risk = 0.15;
 input double   BUY_TDW = 7;   // (0-Sunday, 1-Monday, ... ,6-Saturday)
 input double   SELL_TDW = 7;   // (0-Sunday, 1-Monday, ... ,6-Saturday)
+input int      OBV_base = 5;
 
 //--- Global Var
 ENUM_TIMEFRAMES baseTimeFrame = PERIOD_D1;
@@ -102,7 +103,7 @@ void OnTick()
                }
             }
             
-            if (total == 0 && canBuy){
+            if (total == 0 && canBuy && checkOBV()){
                Print("BUY Order Block");
                OpenRes = OrderSend(Symbol(), OP_BUY, possibleLotSize, Ask, 3, 0, 0, "Order Buy", MagicNo, 0, Green);            
                if(OpenRes){
@@ -141,7 +142,7 @@ void OnTick()
                }
             }
             
-            if (total == 0 && canSell) {
+            if (total == 0 && canSell && !checkOBV()) {
                Print("SELL Order Block");
 
                OpenRes = OrderSend(Symbol(), OP_SELL, possibleLotSize, Bid, 3, 0, 0, "Order Sell", MagicNo, 0, Blue);
@@ -264,3 +265,17 @@ int bailoutOrders(int totalOrderCount, double openPrice) {
 
       return totalOrderCount;
    }
+
+// Check whether OBV increased between 5 days
+bool checkOBV() {
+      // Return true when OBV is increased
+      // Return false when OBV is decreased
+   
+      double latestObvValue = iOBV(Symbol(), baseTimeFrame, 0, 1);
+      double oldObvValue = iOBV(Symbol(), baseTimeFrame, 0, 1 + OBV_base);  
+
+      bool res = true;
+      if (latestObvValue - oldObvValue < 0) res = false;
+
+      return res;
+   } 
