@@ -19,7 +19,6 @@ input double   SELL_TDW = 7;   // (0-Sunday, 1-Monday, ... ,6-Saturday)
 //--- Global Var
 ENUM_TIMEFRAMES baseTimeFrame = PERIOD_D1;
 int currentDate = 0;
-int curPos = 0; // 0 : No Position.  1 : Buy.  2: Sell
 double targetBuyPrice, targetSellPrice, possibleLotSize;
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -28,7 +27,9 @@ int OnInit()
   {
 //---
    Print("Start Basic Trading");
-      
+   
+   PrintFormat("Cur ATR portion : %f, ATR SL portion : %f", ATRportion, ATRSLportion);
+
    return(INIT_SUCCEEDED);
   }
 //+------------------------------------------------------------------+
@@ -61,7 +62,7 @@ void OnTick()
       // When New day Started
       if (strDate.day != currentDate) {
          currentDate = strDate.day;
-         PrintFormat("New Day : %d", currentDate);
+         // PrintFormat("New Day : %d", currentDate);
          double yesterdayAtr = iATR(Symbol(), baseTimeFrame, 1, 1);
          double targetRange = yesterdayAtr * ATRportion;
          double curOpen = iOpen(Symbol(), baseTimeFrame, 0);
@@ -70,6 +71,7 @@ void OnTick()
 
          // Bailout Exit                          
          if (total > 0) {
+            Print("Bailout Exit Condition Check");
             for (int idx = 0; idx < total; idx++){
                if (OrderSelect(idx, SELECT_BY_POS, MODE_TRADES)) {
                   if (OrderMagicNumber() == MagicNo && OrderSymbol() == Symbol()){
@@ -80,7 +82,6 @@ void OnTick()
                            CloseSuccess = OrderClose(OrderTicket(), OrderLots(), Bid, 3, White);
                            if (CloseSuccess){
                               Print("Bailout Buy Order");
-                              curPos = 0;                     
                            }
                            else {
                               Print("Bailout Buy Failed, ", GetLastError());
@@ -93,7 +94,6 @@ void OnTick()
                            CloseSuccess = OrderClose(OrderTicket(), OrderLots(), Ask, 3, White);
                            if (CloseSuccess) {
                               Print("Bailout Sell Order");
-                              curPos = 0;                           
                            }
                            else {
                               Print("Bailout Sell Failed, ", GetLastError());
@@ -108,20 +108,24 @@ void OnTick()
          possibleLotSize = getPossibleLotSize(yesterdayAtr);
          targetBuyPrice = curOpen + targetRange;
          targetSellPrice = curOpen - targetRange;   
+
+         PrintFormat("Lot Size : %f, Target Buy : %f, Target Sell : %f", possibleLotSize, targetBuyPrice, targetSellPrice);
       }
       else {
          if (Ask >= targetBuyPrice) {
+            PrintFormat("Cur Ask : %f, target Buy : %f", Ask, targetBuyPrice);
+
             if (total > 0) {
                for (int idx = 0; idx < total; idx++){
                   if (OrderSelect(0, SELECT_BY_POS, MODE_TRADES)) {
                      if (OrderMagicNumber() == MagicNo && OrderSymbol() == Symbol()){
                         if (OrderType() == OP_BUY) {
-                           if (curPos != 1) curPos = 1;
+                           Print("Buy Order Exist");
                            break;
                         }
                         else if (OrderType() == OP_SELL) {
+                           Print("Sell Order Exist");
                            if(OrderClose(OrderTicket(), OrderLots(), Ask, 3, White)){
-                              curPos= 0;
                               Print("Buy Momentum is found. Close Sell Order");
                               break;                           
                            }
@@ -134,10 +138,10 @@ void OnTick()
                }
             }
             
-            if (curPos == 0 && canBuy){
+            if (canBuy){
+               Print("BUY Order Block");
                OpenRes = OrderSend(Symbol(), OP_BUY, possibleLotSize, Ask, 3, 0, 0, "Order Buy", MagicNo, 0, Green);            
                if(OpenRes){
-                  curPos= 1;
                   Print("Buy Order");               
                }
                else{
@@ -146,16 +150,19 @@ void OnTick()
             }
          }
          else if (Bid <= targetSellPrice) {
+            PrintFormat("Cur Bid : %f, target Sell : %f", Bid, targetSellPrice);
+
             if (total > 0) {
                for (int idx = 0; idx < total; idx++){
                   if (OrderSelect(0, SELECT_BY_POS, MODE_TRADES)) {
                      if (OrderMagicNumber() == MagicNo && OrderSymbol() == Symbol()){
                         if (OrderType() == OP_SELL) {
+                           Print("Sell Order Exist");
                            break;
                         }
                         else if (OrderType() == OP_BUY) {
+                           Print("Buy Order Exist");
                            if(OrderClose(OrderTicket(), OrderLots(), Bid, 3, White)){
-                              curPos= 0;
                               Print("Sell Momentum is found. Close Buy Order");
                               break;
                            }
@@ -168,44 +175,49 @@ void OnTick()
                }
             }
             
-            if (curPos == 0 && canSell) {
+            if (canSell) {
+               Print("SELL Order Block");
+
                OpenRes = OrderSend(Symbol(), OP_SELL, possibleLotSize, Bid, 3, 0, 0, "Order Sell", MagicNo, 0, Blue);
                if (OpenRes){
-                  curPos = 2;
                   Print("Sell Order");               
                }
                else {
                   Print("Sell Order Failed! :: ,", GetLastError());
                }
             }         
-         }    
-           
-         // Set Cur price on orders
-         double yesterdayAtr = iATR(Symbol(), baseTimeFrame, 1, 1);
-         
-         for(int i= 0; i< OrdersTotal(); i++){
-            if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) {
-               if(OrderMagicNumber() == MagicNo && OrderSymbol() == Symbol()) {
-                  if (OrderType() == OP_BUY){
-                     if(OrderStopLoss()== 0){
-                        if(OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice() - yesterdayAtr * ATRSLportion, 0, 0, White)){
-                           Print("Stop Set on Buy Order");                        
+         } 
+
+         if (OrdersTotal() > 0) {
+            Print("StopLoss setting block");   
+            
+            // Set Cur price on orders
+            double yesterdayAtr = iATR(Symbol(), baseTimeFrame, 1, 1);
+            
+            for(int i= 0; i< OrdersTotal(); i++){
+               if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) {
+                  if(OrderMagicNumber() == MagicNo && OrderSymbol() == Symbol()) {
+                     if (OrderType() == OP_BUY){
+                        if(OrderStopLoss()== 0){
+                           if(OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice() - yesterdayAtr * ATRSLportion, 0, 0, White)){
+                              Print("Stop Set on Buy Order");                        
+                           }
+                           else {
+                              Print("Failed on set Stop on Buy Order");
+                           }
+                           break;
                         }
-                        else {
-                           Print("Failed on set Stop on Buy Order");
-                        }
-                        break;
                      }
-                  }
-                  else if (OrderType() == OP_SELL) {
-                     if (OrderStopLoss() == 0){
-                        if(OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice() + yesterdayAtr * ATRSLportion, 0, 0, White)){
-                           Print("Stop Set on Sell Order");                        
+                     else if (OrderType() == OP_SELL) {
+                        if (OrderStopLoss() == 0){
+                           if(OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice() + yesterdayAtr * ATRSLportion, 0, 0, White)){
+                              Print("Stop Set on Sell Order");                        
+                           }
+                           else {
+                              Print("Failed on set Stop on Sell Order");
+                           }
+                           break;
                         }
-                        else {
-                           Print("Failed on set Stop on Sell Order");
-                        }
-                        break;
                      }
                   }
                }
@@ -218,15 +230,15 @@ double getPossibleLotSize(double atrValue) {
       double tradableLotSize = 0;
       double ATR100forSL = atrValue / MarketInfo(Symbol(), MODE_TICKSIZE) * MarketInfo(Symbol(), MODE_TICKVALUE);
       double expectedSL = ATR100forSL * ATRSLportion; // sl price for 1 lot
-      PrintFormat("Expected SL Price per 1 Lot : %f", expectedSL);
+      // PrintFormat("Expected SL Price per 1 Lot : %f", expectedSL);
       
       double maxRiskForAccount = AccountBalance() * Risk;
-      PrintFormat("Account : %f,  Max Lisk per trade : %f", AccountBalance(), maxRiskForAccount);
+      // PrintFormat("Account : %f,  Max Lisk per trade : %f", AccountBalance(), maxRiskForAccount);
       double maxLotBasedOnSL = maxRiskForAccount / expectedSL;
       
       double tradableMinLotSize = MarketInfo(Symbol(), MODE_MINLOT);
       double requiredMinBalance = tradableMinLotSize * expectedSL / Risk;
-      PrintFormat("Required Minimum Account : %f", requiredMinBalance);
+      // PrintFormat("Required Minimum Account : %f", requiredMinBalance);
       
       // PrintFormat("Lot Size Per SL : %f", maxLotBasedOnSL);
       
