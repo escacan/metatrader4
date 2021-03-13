@@ -52,15 +52,12 @@ void OnTick()
       
       bool canBuy = true;
       bool canSell = true;
-      if (BUY_TDW != 7) canBuy = strDate.day_of_week == BUY_TDW;
-      if (SELL_TDW != 7) canSell = strDate.day_of_week == SELL_TDW;
+      // if (BUY_TDW != 7) canBuy = strDate.day_of_week == BUY_TDW;
+      // if (SELL_TDW != 7) canSell = strDate.day_of_week == SELL_TDW;
 
       int OpenRes = -1;
       bool CloseSuccess = false;
 
-      MqlTick last_tick;
-      SymbolInfoTick(,last_tick);
-            
       // When New day Started
       if (strDate.day != currentDate) {
          currentDate = strDate.day;
@@ -113,7 +110,7 @@ void OnTick()
          targetSellPrice = curOpen - targetRange;   
       }
       else {
-         if (Close[0] >= targetBuyPrice) {
+         if (Ask >= targetBuyPrice) {
             if (total > 0) {
                for (int idx = 0; idx < total; idx++){
                   if (OrderSelect(0, SELECT_BY_POS, MODE_TRADES)) {
@@ -148,7 +145,7 @@ void OnTick()
                }
             }
          }
-         else if (Close[0] <= targetSellPrice) {
+         else if (Bid <= targetSellPrice) {
             if (total > 0) {
                for (int idx = 0; idx < total; idx++){
                   if (OrderSelect(0, SELECT_BY_POS, MODE_TRADES)) {
@@ -191,7 +188,7 @@ void OnTick()
                if(OrderMagicNumber() == MagicNo && OrderSymbol() == Symbol()) {
                   if (OrderType() == OP_BUY){
                      if(OrderStopLoss()== 0){
-                        if(OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice() - yesterdayAtr * 0.5, 0, 0, White)){
+                        if(OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice() - yesterdayAtr * ATRSLportion, 0, 0, White)){
                            Print("Stop Set on Buy Order");                        
                         }
                         else {
@@ -202,7 +199,7 @@ void OnTick()
                   }
                   else if (OrderType() == OP_SELL) {
                      if (OrderStopLoss() == 0){
-                        if(OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice() + yesterdayAtr * 0.5, 0, 0, White)){
+                        if(OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice() + yesterdayAtr * ATRSLportion, 0, 0, White)){
                            Print("Stop Set on Sell Order");                        
                         }
                         else {
