@@ -245,8 +245,9 @@ double getPossibleLotSize(double atrValue) {
       if (AccountBalance() < requiredMinBalance) {
          PrintFormat("Available Min Lot Size : %f", MarketInfo(Symbol(), MODE_MINLOT));
          PrintFormat("You need at least %f for risk management. Find other item.", requiredMinBalance);
+         tradableLotSize = -1;
       }
-      else if (MarketInfo(Symbol(), MODE_MINLOT) > maxLotBasedOnSL) {
+      else {
          tradableLotSize = maxLotBasedOnSL - MathMod(maxLotBasedOnSL, tradableMinLotSize);
          PrintFormat("What you wanted : %f\nTradable Size : %f", maxLotBasedOnSL, tradableLotSize);
       }
