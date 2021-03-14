@@ -10,6 +10,7 @@
 
 extern int MagicNo = 1; 
 //--- input parameters
+input double   MAX_LOT_SIZE_PER_ORDER = 50.0;
 input double   ATRportion = 0.7;
 input double   ATRSLportion = 0.5;
 input double   Risk = 0.15;
@@ -33,7 +34,8 @@ int OnInit()
    Print("Start Basic Trading");
    
    PrintFormat("Cur ATR portion : %f, ATR SL portion : %f", ATRportion, ATRSLportion);
-
+   PrintFormat("Max Lot Size per Order : %f", MAX_LOT_SIZE_PER_ORDER);
+ 
    return(INIT_SUCCEEDED);
   }
 //+------------------------------------------------------------------+
@@ -50,10 +52,13 @@ void OnDeinit(const int reason)
 void OnTick()
   {
 //--- 
-      int total = OrdersTotal();
+      int total = OrdersTotal(); // 현재 Symbol에서 진입한 Order Count를 가져와야 한다! 다양한 마켓에서 사용 가능하기 때문.
       datetime tempDate = TimeCurrent();
       MqlDateTime strDate;
       TimeToStruct(tempDate, strDate);
+
+      bool positionExist = false;
+      bool newOrderExist = false;
       
       bool canBuy = true;
       bool canSell = true;
@@ -70,7 +75,7 @@ void OnTick()
          
          PrintFormat("Today: %d, OpenPrice: %f, yesterday ATR: %f", currentDate, curOpen, yesterdayAtr); 
 
-         total = bailoutOrders(total, curOpen);
+         bailoutOrders(total, curOpen);
          
          possibleLotSize = getPossibleLotSize(yesterdayAtr);
          targetBuyPrice = curOpen + targetRange;
@@ -78,7 +83,7 @@ void OnTick()
       }
       else {
          int OpenRes = -1;
-         
+
          if (Ask >= targetBuyPrice) {
             PrintFormat("Cur Ask : %f, target Buy : %f", Ask, targetBuyPrice);
 
@@ -88,14 +93,13 @@ void OnTick()
                      if (OrderMagicNumber() == MagicNo && OrderSymbol() == Symbol()){
                         if (OrderType() == OP_BUY) {
                            Print("Buy Order Exist");
+                           positionExist = true;
                            break;
                         }
                         else if (OrderType() == OP_SELL) {
                            Print("Sell Order Exist");
                            if(OrderClose(OrderTicket(), OrderLots(), Ask, 3, White)){
                               Print("Buy Momentum is found. Close Sell Order");
-                              total--;
-                              break;                           
                            }
                            else {
                               PrintFormat("Close Order Failed :: ", GetLastError());
@@ -106,16 +110,10 @@ void OnTick()
                }
             }
             
-            if (total == 0 && canBuy && checkOBV() && checkRSI()){
+            if (!positionExist && canBuy && checkOBV() && checkRSI()){
                Print("BUY Order Block");
-               OpenRes = OrderSend(Symbol(), OP_BUY, possibleLotSize, Ask, 3, 0, 0, "Order Buy", MagicNo, 0, Green);            
-               if(OpenRes){
-                  Print("Buy Order");  
-                  total++;             
-               }
-               else{
-                  Print("Buy Order Failed! : ,", GetLastError());
-               }
+               sendOrders(OP_BUY, Ask, possibleLotSize);
+               newOrderExist = true;
             }
          }
          else if (Bid <= targetSellPrice) {
@@ -127,13 +125,13 @@ void OnTick()
                      if (OrderMagicNumber() == MagicNo && OrderSymbol() == Symbol()){
                         if (OrderType() == OP_SELL) {
                            Print("Sell Order Exist");
+                           positionExist = true;
                            break;
                         }
                         else if (OrderType() == OP_BUY) {
                            Print("Buy Order Exist");
                            if(OrderClose(OrderTicket(), OrderLots(), Bid, 3, White)){
                               Print("Sell Momentum is found. Close Buy Order");
-                              total--;
                               break;
                            }
                            else{
@@ -145,23 +143,17 @@ void OnTick()
                }
             }
             
-            if (total == 0 && canSell && !checkOBV() && !checkRSI()) {
+            if (!positionExist && canSell && !checkOBV() && !checkRSI()) {
                Print("SELL Order Block");
-
-               OpenRes = OrderSend(Symbol(), OP_SELL, possibleLotSize, Bid, 3, 0, 0, "Order Sell", MagicNo, 0, Blue);
-               if (OpenRes){
-                  Print("Sell Order");  
-                  total++;             
-               }
-               else {
-                  Print("Sell Order Failed! :: ,", GetLastError());
-               }
+               sendOrders(OP_SELL, Bid, possibleLotSize);
+               newOrderExist = true;
             }         
          } 
 
-         if (total > 0) {
+         if (newOrderExist) {
             Print("StopLoss setting block");   
             
+            total = OrdersTotal();
             // Set Cur price on orders
             double yesterdayAtr = iATR(Symbol(), baseTimeFrame, 1, 1);
             
@@ -176,7 +168,6 @@ void OnTick()
                            else {
                               Print("Failed on set Stop on Buy Order");
                            }
-                           break;
                         }
                      }
                      else if (OrderType() == OP_SELL) {
@@ -187,7 +178,6 @@ void OnTick()
                            else {
                               Print("Failed on set Stop on Sell Order");
                            }
-                           break;
                         }
                      }
                   }
@@ -196,6 +186,29 @@ void OnTick()
          }
       }
   }
+
+void sendOrders(int cmd, double price, double lotSize) {
+      int completedOrderCount= 0;
+      string comment = "";
+
+      if (cmd == 0) comment = "Send BUY order";
+      else if (cmd == 1) comment = "Send SELL order";
+      
+      while (lotSize - MAX_LOT_SIZE_PER_ORDER > 0.0) {
+         lotSize -= MAX_LOT_SIZE_PER_ORDER;
+         if (OrderSend(Symbol(), cmd, MAX_LOT_SIZE_PER_ORDER, price, 3, 0, 0, comment, MagicNo, 0, Blue)) {
+            completedOrderCount++;                   
+         }
+      }
+   
+      if (lotSize > 0) {
+         if (OrderSend(Symbol(), cmd, lotSize, price, 3, 0, 0, comment, MagicNo, 0, Blue)) {
+            completedOrderCount++;             
+         }
+      }
+
+      PrintFormat("Total OrderSend Count : %d", completedOrderCount);
+   }
 
 double getPossibleLotSize(double atrValue) {
       double tradableLotSize = 0;
@@ -226,7 +239,7 @@ double getPossibleLotSize(double atrValue) {
       return tradableLotSize;      
 }
 
-int bailoutOrders(int totalOrderCount, double openPrice) {
+void bailoutOrders(int totalOrderCount, double openPrice) {
       bool CloseSuccess = false;
 
       if (totalOrderCount > 0) {
@@ -259,14 +272,12 @@ int bailoutOrders(int totalOrderCount, double openPrice) {
                         else {
                            Print("Bailout Sell Failed, ", GetLastError());
                         }
-                        }                        
+                     }                        
                   }
                }
             }
          }
       }
-
-      return totalOrderCount;
    }
 
 // Check whether OBV increased between 5 days
@@ -287,7 +298,7 @@ bool checkRSI() {
       // Return true when RSI > 0.5
       // Return false when RSI < 0.5
 
-      double rsiValue = iRSV(Symbol(), baseTimeFrame, RSI_PERIOD, 0, 1);
+      double rsiValue = iRSI(Symbol(), baseTimeFrame, RSI_PERIOD, 0, 1);
       if (rsiValue > 0.5) return true;
       return false;
    }
