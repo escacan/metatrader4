@@ -10,12 +10,15 @@
 
 extern int MagicNo = 1; 
 //--- input parameters
-input double   ATRportion = 0.6;
+input double   ATRportion = 0.7;
 input double   ATRSLportion = 0.5;
 input double   Risk = 0.15;
 input double   BUY_TDW = 7;   // (0-Sunday, 1-Monday, ... ,6-Saturday)
 input double   SELL_TDW = 7;   // (0-Sunday, 1-Monday, ... ,6-Saturday)
+input bool     USE_OBV = true;
+input bool     USE_RSI = true;
 input int      OBV_base = 5;
+input int      RSI_PERIOD = 14;
 
 //--- Global Var
 ENUM_TIMEFRAMES baseTimeFrame = PERIOD_D1;
@@ -103,7 +106,7 @@ void OnTick()
                }
             }
             
-            if (total == 0 && canBuy && checkOBV()){
+            if (total == 0 && canBuy && checkOBV() && checkRSI()){
                Print("BUY Order Block");
                OpenRes = OrderSend(Symbol(), OP_BUY, possibleLotSize, Ask, 3, 0, 0, "Order Buy", MagicNo, 0, Green);            
                if(OpenRes){
@@ -142,7 +145,7 @@ void OnTick()
                }
             }
             
-            if (total == 0 && canSell && !checkOBV()) {
+            if (total == 0 && canSell && !checkOBV() && !checkRSI()) {
                Print("SELL Order Block");
 
                OpenRes = OrderSend(Symbol(), OP_SELL, possibleLotSize, Bid, 3, 0, 0, "Order Sell", MagicNo, 0, Blue);
@@ -279,3 +282,12 @@ bool checkOBV() {
 
       return res;
    } 
+
+bool checkRSI() {
+      // Return true when RSI > 0.5
+      // Return false when RSI < 0.5
+
+      double rsiValue = iRSV(Symbol(), baseTimeFrame, RSI_PERIOD, 0, 1);
+      if (rsiValue > 0.5) return true;
+      return false;
+   }
