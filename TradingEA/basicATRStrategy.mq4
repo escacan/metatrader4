@@ -20,6 +20,8 @@ input bool     USE_OBV = true;
 input bool     USE_RSI = true;
 input int      OBV_base = 5;
 input int      RSI_PERIOD = 14;
+input bool     USE_TIMEOUT_ORDER = false;
+input int      TIMEOUT_BASE = 5;
 
 //--- Global Var
 ENUM_TIMEFRAMES baseTimeFrame = PERIOD_D1;
@@ -54,6 +56,7 @@ void OnTick()
 //--- 
       int total = OrdersTotal(); // 현재 Symbol에서 진입한 Order Count를 가져와야 한다! 다양한 마켓에서 사용 가능하기 때문.
       datetime tempDate = TimeCurrent();
+      int currentTime = TimeSeconds(tempDate);
       MqlDateTime strDate;
       TimeToStruct(tempDate, strDate);
 
@@ -75,7 +78,7 @@ void OnTick()
          
          PrintFormat("Today: %d, OpenPrice: %f, yesterday ATR: %f", currentDate, curOpen, yesterdayAtr); 
 
-         bailoutOrders(total, curOpen);
+         bailoutOrders(currentTime, total, curOpen);
          
          possibleLotSize = getPossibleLotSize(yesterdayAtr);
          targetBuyPrice = curOpen + targetRange;
@@ -239,18 +242,23 @@ double getPossibleLotSize(double atrValue) {
       return tradableLotSize;      
 }
 
-void bailoutOrders(int totalOrderCount, double openPrice) {
+void bailoutOrders(int currentTime, int totalOrderCount, double openPrice) {
       bool CloseSuccess = false;
+      int orderTime = 0;
 
       if (totalOrderCount > 0) {
          Print("Bailout Exit Condition Check");
          for (int idx = 0; idx < totalOrderCount; idx++){
             if (OrderSelect(idx, SELECT_BY_POS, MODE_TRADES)) {
                if (OrderMagicNumber() == MagicNo && OrderSymbol() == Symbol()){
+                  orderTime = TimeSeconds(OrderOpenTime());
+
                   if (OrderType() == OP_BUY) {
                      PrintFormat("Order Info :: Today's Open : %f, OrderOpenPrice : %f", openPrice, OrderOpenPrice());
-                  
-                     if (openPrice > OrderOpenPrice()) {
+
+                     // 시가가 진입가보다 높은 경우
+                     // 혹은 주문하고 기준일이 지나간 경우
+                     if (openPrice > OrderOpenPrice() || timeoutOrder(currentTime, orderTime)) {
                         CloseSuccess = OrderClose(OrderTicket(), OrderLots(), Bid, 3, White);
                         if (CloseSuccess){
                            Print("Bailout Buy Order");
@@ -263,7 +271,7 @@ void bailoutOrders(int totalOrderCount, double openPrice) {
                   }
                   else if (OrderType() == OP_SELL) {
                      PrintFormat("Order Info :: Today's Open : %f, OrderOpenPrice : %f", openPrice, OrderOpenPrice());
-                     if (openPrice < OrderOpenPrice()) {
+                     if (openPrice < OrderOpenPrice() || timeoutOrder(currentTime, orderTime)) {
                         CloseSuccess = OrderClose(OrderTicket(), OrderLots(), Ask, 3, White);
                         if (CloseSuccess) {
                            Print("Bailout Sell Order");
@@ -300,5 +308,14 @@ bool checkRSI() {
 
       double rsiValue = iRSI(Symbol(), baseTimeFrame, RSI_PERIOD, 0, 1);
       if (rsiValue > 0.5) return true;
+      return false;
+   }
+
+bool timeoutOrder(int curTime, int orderOpenTime) {
+      if (!USE_TIMEOUT_ORDER) return false;
+
+      int elapsedTime = curTime - orderOpenTime;
+      int elapsedDay = elapsedTime / 3600 / 24;
+      if (elapsedDay >= TIMEOUT_BASE) return true;
       return false;
    }
