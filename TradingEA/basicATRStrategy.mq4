@@ -88,7 +88,7 @@ void OnTick()
          int OpenRes = -1;
 
          if (Ask >= targetBuyPrice) {
-            PrintFormat("Cur Ask : %f, target Buy : %f", Ask, targetBuyPrice);
+            // PrintFormat("Cur Ask : %f, target Buy : %f", Ask, targetBuyPrice);
 
             if (total > 0) {
                for (int idx = 0; idx < total; idx++){
@@ -120,7 +120,7 @@ void OnTick()
             }
          }
          else if (Bid <= targetSellPrice) {
-            PrintFormat("Cur Bid : %f, target Sell : %f", Bid, targetSellPrice);
+            // PrintFormat("Cur Bid : %f, target Sell : %f", Bid, targetSellPrice);
 
             if (total > 0) {
                for (int idx = 0; idx < total; idx++){
@@ -199,14 +199,22 @@ void sendOrders(int cmd, double price, double lotSize) {
       
       while (lotSize - MAX_LOT_SIZE_PER_ORDER > 0.0) {
          lotSize -= MAX_LOT_SIZE_PER_ORDER;
+         PrintFormat("Order Lot Size : %f", MAX_LOT_SIZE_PER_ORDER);
          if (OrderSend(Symbol(), cmd, MAX_LOT_SIZE_PER_ORDER, price, 3, 0, 0, comment, MagicNo, 0, Blue)) {
             completedOrderCount++;                   
+         }
+         else {
+            Print("OrderSend Failed, ", GetLastError());         
          }
       }
    
       if (lotSize > 0) {
+         PrintFormat("Order Lot Size : %f", lotSize);
          if (OrderSend(Symbol(), cmd, lotSize, price, 3, 0, 0, comment, MagicNo, 0, Blue)) {
             completedOrderCount++;             
+         }
+         else {
+            Print("OrderSend Failed, ", GetLastError());         
          }
       }
 
