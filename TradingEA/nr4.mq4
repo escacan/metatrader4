@@ -17,6 +17,8 @@ input double   ATRSLportion = 0.5;
 input double   Risk = 0.15;
 input double   BUY_TDW = 7;   // (0-Sunday, 1-Monday, ... ,6-Saturday)
 input double   SELL_TDW = 7;   // (0-Sunday, 1-Monday, ... ,6-Saturday)
+input bool     USE_RSI = false;
+input int      RSI_PERIOD = 14;
 
 ENUM_TIMEFRAMES baseTimeFrame = PERIOD_D1;
 double targetBuyPrice, targetSellPrice, possibleLotSize;
@@ -72,7 +74,7 @@ void OnTick()
         bool positionExist = false;
         bool newOrderExist = false;
       
-        if (Ask >= targetBuyPrice) {
+        if (Ask >= targetBuyPrice && targetBuyPrice != -1) {
             PrintFormat("Cur Ask : %f, target Buy : %f", Ask, targetBuyPrice);
 
             if (total > 0) {
@@ -98,13 +100,13 @@ void OnTick()
                }
             }
             
-            if (!positionExist && canBuy){
+            if (!positionExist && canBuy) {
                Print("BUY Order Block");
                sendOrders(OP_BUY, Ask, possibleLotSize);
                newOrderExist = true;
             }
          }
-         else if (Bid <= targetSellPrice) {
+         else if (Bid <= targetSellPrice && targetSellPrice != -1) {
             PrintFormat("Cur Bid : %f, target Sell : %f", Bid, targetSellPrice);
 
             if (total > 0) {
@@ -298,5 +300,14 @@ bool timeoutOrder(int curTime, int orderOpenTime) {
       int elapsedTime = curTime - orderOpenTime;
       int elapsedDay = elapsedTime / 3600 / 24;
       if (elapsedDay >= TIMEOUT_BASE) return true;
+      return false;
+   }
+
+bool checkRSI() {
+      // Return true when RSI > 0.5
+      // Return false when RSI < 0.5
+
+      double rsiValue = iRSI(Symbol(), baseTimeFrame, RSI_PERIOD, 0, 1);
+      if (rsiValue > 0.5) return true;
       return false;
    }
