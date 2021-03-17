@@ -11,14 +11,14 @@
 extern int MagicNo = 1; 
 //--- input parameters
 input double   MAX_LOT_SIZE_PER_ORDER = 50.0;
-input double   ATRportion = 0.7;
-input double   ATRSLportion = 0.5;
+input double   ATRportion = 0.4;
+input double   ATRSLportion = 0.2;
 input double   Risk = 0.15;
 input double   BUY_TDW = 7;   // (0-Sunday, 1-Monday, ... ,6-Saturday)
 input double   SELL_TDW = 7;   // (0-Sunday, 1-Monday, ... ,6-Saturday)
 input bool     USE_OBV = true;
 input bool     USE_RSI = true;
-input int      OBV_base = 5;
+input int      OBV_base = 2;
 input int      RSI_PERIOD = 14;
 input bool     USE_TIMEOUT_ORDER = false;
 input int      TIMEOUT_BASE = 5;
