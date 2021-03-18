@@ -14,6 +14,7 @@ input double   MAX_LOT_SIZE_PER_ORDER = 50.0;
 input double   ATRSLportion = 0.5;
 input double   Risk = 0.01;
 input double   NotionalBalance = 5000;
+input int      BASE_TERM_FOR_BREAKOUT = 55;
 
 //--- Global Var
 ENUM_TIMEFRAMES baseTimeFrame = PERIOD_D1;
@@ -48,6 +49,25 @@ void OnTick()
 //--- 
 
   }
+
+
+// Check whether current price break the highest/lowest price
+// Return 1 if cur > highest
+// Return -1 else if cur < lowest
+// Return 0 else
+int doesPriceExceeded (int cmd) {
+   int result = 0;
+   double currentPrice = Close[0];
+   if (cmd == OP_BUY) {
+      double highestPrice = iHighest(Symbol(), baseTimeFrame,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
+      if(currentPrice > highestPrice) result = 1;
+   }
+   else if (cmd == OP_SELL) {
+      double lowestPrice = iLowest(Symbol(), baseTimeFrame,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);         
+      if (currentPrice < lowestPrice) result = -1;
+   }
+   return result;
+}
 
 double getPossibleLotSize() {
       double atrValue = iATR(Symbol(), baseTimeFrame, 20, 1);
