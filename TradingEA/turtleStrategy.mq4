@@ -21,6 +21,7 @@ double TARGET_BUY_PRICE, TARGET_SELL_PRICE;
 int CURRENT_UNIT_COUNT = 0; // Maximum Unit count = 4;
 double N_VALUE = 0; // Need to Update Weekly
 double UNIT_STEP_UP_PORTION = 0.5; // Use this value for calculating new target price
+double DOLLAR_PER_POINT = MarketInfo(Symbol(), MODE_TICKVALUE) / MarketInfo(Symbol(), MODE_TICKSIZE);
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -109,7 +110,7 @@ int canSendOrder (int cmd) {
 
 double getUnitSize() {
       double tradableLotSize = 0;
-      double dollarVolatility = N_VALUE / MarketInfo(Symbol(), MODE_TICKSIZE) * MarketInfo(Symbol(), MODE_TICKVALUE);
+      double dollarVolatility = N_VALUE * DOLLAR_PER_POINT;
       // PrintFormat("Expected SL Price per 1 Lot : %f", dollarVolatility);
       
       double maxRiskForAccount = NOTIONAL_BALANCE * RISK;
