@@ -11,15 +11,15 @@
 extern int MagicNo = 3; 
 //--- input parameters
 input double   MAX_LOT_SIZE_PER_ORDER = 50.0;
-input double   ATRSLportion = 0.5;
-input double   Risk = 0.01;
-input double   NotionalBalance = 5000;
+input double   RISK = 0.01;
+input double   NOTIONAL_BALANCE = 5000;
 input int      BASE_TERM_FOR_BREAKOUT = 55;
 
 //--- Global Var
 ENUM_TIMEFRAMES BASE_TIMEFRAME = PERIOD_D1;
 double TARGET_BUY_PRICE, TARGET_SELL_PRICE;
 int CURRENT_UNIT_COUNT = 0; // Maximum Unit count = 4;
+double N_VALUE = 0; // Need to Update Weekly
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -50,6 +50,11 @@ void OnTick()
 //--- 
 
   }
+
+// Items we need to update Weekly
+void updateWeekly() {
+   N_VALUE = iATR(Symbol(), BASE_TIMEFRAME, 20, 1);
+}
 
 void updateTargetPrice(int cmd) {
    if (cmd == OP_BUY) {
@@ -83,18 +88,16 @@ int canSendOrder (int cmd) {
 }
 
 double getUnitSize() {
-      double atrValue = iATR(Symbol(), BASE_TIMEFRAME, 20, 1);
-
       double tradableLotSize = 0;
-      double dollarVolatility = atrValue / MarketInfo(Symbol(), MODE_TICKSIZE) * MarketInfo(Symbol(), MODE_TICKVALUE);
+      double dollarVolatility = N_VALUE / MarketInfo(Symbol(), MODE_TICKSIZE) * MarketInfo(Symbol(), MODE_TICKVALUE);
       // PrintFormat("Expected SL Price per 1 Lot : %f", dollarVolatility);
       
-      double maxRiskForAccount = NotionalBalance * Risk;
+      double maxRiskForAccount = NOTIONAL_BALANCE * RISK;
 
       double maxLotBasedOnDollarVolatility = maxRiskForAccount / dollarVolatility;
       
       double tradableMinLotSize = MarketInfo(Symbol(), MODE_MINLOT);
-      double requiredMinBalance = tradableMinLotSize * dollarVolatility / Risk;
+      double requiredMinBalance = tradableMinLotSize * dollarVolatility / RISK;
       
       PrintFormat("Tradable Minimum Lot Size on Symbol : %f", tradableMinLotSize);
       PrintFormat("Required Minimum Account : %f", requiredMinBalance);
