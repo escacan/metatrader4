@@ -31,9 +31,9 @@ int OnInit()
   {
 //---
    Print("Start Turtle Trading");
+   PrintFormat("Dollar Per Point : %f", DOLLAR_PER_POINT);
 
    double tradableLotSize = getUnitSize();
-
  
    return(INIT_SUCCEEDED);
   }
@@ -75,8 +75,8 @@ void updateTargetPrice(int cmd, double latestOrderOpenPrice) {
       }
    }
    else if (CURRENT_UNIT_COUNT == 0) {
-      TARGET_BUY_PRICE = iHighest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1) + MarketInfo(NULL, MODE_TICKSIZE));
-      TARGET_SELL_PRICE = iLowest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1) - MarketInfo(NULL, MODE_TICKSIZE));
+      TARGET_BUY_PRICE = iHighest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1) + MarketInfo(NULL, MODE_TICKSIZE);
+      TARGET_SELL_PRICE = iLowest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1) - MarketInfo(NULL, MODE_TICKSIZE);
    }
 }
 
@@ -141,6 +141,8 @@ double getUnitSize() {
       
       PrintFormat("Tradable Minimum Lot Size on Symbol : %f", tradableMinLotSize);
       PrintFormat("Required Minimum Account : %f", requiredMinBalance);
+
+      PrintFormat("Notional Balance : %f", NOTIONAL_BALANCE);
 
       tradableLotSize = maxLotBasedOnDollarVolatility - MathMod(maxLotBasedOnDollarVolatility, tradableMinLotSize);
       PrintFormat("You can trade : %f", tradableLotSize);
