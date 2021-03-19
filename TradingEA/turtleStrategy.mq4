@@ -20,6 +20,7 @@ ENUM_TIMEFRAMES BASE_TIMEFRAME = PERIOD_D1;
 double TARGET_BUY_PRICE, TARGET_SELL_PRICE;
 int CURRENT_UNIT_COUNT = 0; // Maximum Unit count = 4;
 double N_VALUE = 0; // Need to Update Weekly
+double UNIT_STEP_UP_PORTION = 0.5; // Use this value for calculating new target price
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -51,17 +52,36 @@ void OnTick()
 
   }
 
-// Items we need to update Weekly
+// Function of Sending Order. When Order made, update Unit count and target price.
+// Send order for [ (targetLotSize / Maximum lot size) + 1 ] times.
+void sendOrders(int cmd) {
+   // Send Order
+   if (true) { // OrderSend() == true
+      // updateTargetPrice based on OrderOpenPrice
+      double openPrice = 0; 
+
+      updateTargetPrice(cmd, openPrice);
+      CURRENT_UNIT_COUNT++;
+   }
+   else {
+      PrintFormat("sendOrders:: OrderSend Failed - ", GetLastError());
+   }
+}
+
+// Function which update Items we need to update Weekly
 void updateWeekly() {
    N_VALUE = iATR(Symbol(), BASE_TIMEFRAME, 20, 1);
 }
 
-void updateTargetPrice(int cmd) {
+// Function which update Target Price based on latest order's CMD and OpenPrice.
+void updateTargetPrice(int cmd, double latestOrderOpenPrice) {
+   double diffPrice = N_VALUE * UNIT_STEP_UP_PORTION;
+
    if (cmd == OP_BUY) {
-      if(currentPrice > TARGET_BUY_PRICE) result = 1;
+      if(currentPrice >= TARGET_BUY_PRICE) TARGET_BUY_PRICE = latestOrderOpenPrice + diffPrice;
    }
    else if (cmd == OP_SELL) {
-      if (currentPrice < TARGET_SELL_PRICE) result = -1;
+      if (currentPrice <= TARGET_SELL_PRICE) TARGET_SELL_PRICE = latestOrderOpenPrice - diffPrice;
    }
 }
 
