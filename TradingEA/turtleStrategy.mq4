@@ -17,9 +17,10 @@ input double   NotionalBalance = 5000;
 input int      BASE_TERM_FOR_BREAKOUT = 55;
 
 //--- Global Var
-ENUM_TIMEFRAMES baseTimeFrame = PERIOD_D1;
-int currentDate = 0;
-double targetBuyPrice, targetSellPrice, possibleLotSize;
+ENUM_TIMEFRAMES BASE_TIMEFRAME = PERIOD_D1;
+double TARGET_BUY_PRICE, TARGET_SELL_PRICE;
+int CURRENT_UNIT_COUNT = 0; // Maximum Unit count = 4;
+
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -28,7 +29,7 @@ int OnInit()
 //---
    Print("Start Turtle Trading");
 
-   double tradableLotSize = getPossibleLotSize();
+   double tradableLotSize = getUnitSize();
 
  
    return(INIT_SUCCEEDED);
@@ -50,27 +51,39 @@ void OnTick()
 
   }
 
+void updateTargetPrice(int cmd) {
+   if (cmd == OP_BUY) {
+      if(currentPrice > TARGET_BUY_PRICE) result = 1;
+   }
+   else if (cmd == OP_SELL) {
+      if (currentPrice < TARGET_SELL_PRICE) result = -1;
+   }
+}
+
+void setInitialTargetPrice() {
+   TARGET_BUY_PRICE = iHighest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
+   TARGET_SELL_PRICE = iLowest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);         
+}
 
 // Check whether current price break the highest/lowest price
 // Return 1 if cur > highest
 // Return -1 else if cur < lowest
 // Return 0 else
-int doesPriceExceeded (int cmd) {
+int canSendOrder (int cmd) {
    int result = 0;
    double currentPrice = Close[0];
+
    if (cmd == OP_BUY) {
-      double highestPrice = iHighest(Symbol(), baseTimeFrame,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
-      if(currentPrice > highestPrice) result = 1;
+      if(currentPrice > TARGET_BUY_PRICE) result = 1;
    }
    else if (cmd == OP_SELL) {
-      double lowestPrice = iLowest(Symbol(), baseTimeFrame,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);         
-      if (currentPrice < lowestPrice) result = -1;
+      if (currentPrice < TARGET_SELL_PRICE) result = -1;
    }
    return result;
 }
 
-double getPossibleLotSize() {
-      double atrValue = iATR(Symbol(), baseTimeFrame, 20, 1);
+double getUnitSize() {
+      double atrValue = iATR(Symbol(), BASE_TIMEFRAME, 20, 1);
 
       double tradableLotSize = 0;
       double dollarVolatility = atrValue / MarketInfo(Symbol(), MODE_TICKSIZE) * MarketInfo(Symbol(), MODE_TICKVALUE);
