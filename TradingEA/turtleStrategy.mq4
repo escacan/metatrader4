@@ -18,7 +18,8 @@ input int      BASE_TERM_FOR_BREAKOUT = 55;
 //--- Global Var
 ENUM_TIMEFRAMES BASE_TIMEFRAME = PERIOD_D1;
 double TARGET_BUY_PRICE, TARGET_SELL_PRICE;
-int CURRENT_UNIT_COUNT = 0; // Maximum Unit count = 4;
+int CURRENT_UNIT_COUNT = 0;
+int MAXIMUM_UNIT_COUNT = 4;
 double N_VALUE = 0; // Need to Update Weekly
 double UNIT_STEP_UP_PORTION = 0.5; // Use this value for calculating new target price
 double DOLLAR_PER_POINT = MarketInfo(Symbol(), MODE_TICKVALUE) / MarketInfo(Symbol(), MODE_TICKSIZE);
@@ -53,10 +54,46 @@ void OnTick()
 
   }
 
+// Function which update Items we need to update Weekly
+void updateWeekly() {
+   N_VALUE = iATR(Symbol(), BASE_TIMEFRAME, 20, 1);
+}
+
+// Function which update Target Price based on latest order's CMD and OpenPrice.
+void updateTargetPrice(int cmd, double latestOrderOpenPrice) {
+   double diffPrice = N_VALUE * UNIT_STEP_UP_PORTION;
+   
+   if (CURRENT_UNIT_COUNT == MAXIMUM_UNIT_COUNT) {
+      return;
+   }
+   else if (CURRENT_UNIT_COUNT > 0) {
+      if (cmd == OP_BUY) {
+         TARGET_BUY_PRICE = latestOrderOpenPrice + diffPrice;
+      }
+      else if (cmd == OP_SELL) {
+         TARGET_SELL_PRICE = latestOrderOpenPrice - diffPrice;
+      }
+   }
+   else if (CURRENT_UNIT_COUNT == 0) {
+      TARGET_BUY_PRICE = iHighest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1) + MarketInfo(NULL, MODE_TICKSIZE));
+      TARGET_SELL_PRICE = iLowest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1) - MarketInfo(NULL, MODE_TICKSIZE));
+   }
+}
+
 // Function of Sending Order. When Order made, update Unit count and target price.
 // Send order for [ (targetLotSize / Maximum lot size) + 1 ] times.
 void sendOrders(int cmd) {
    // Send Order
+   if (cmd == OP_BUY){
+   
+   }
+   else if (cmd == OP_SELL) {
+
+   }
+   else {
+      return;
+   }
+
    if (true) { // OrderSend() == true
       // updateTargetPrice based on OrderOpenPrice
       double openPrice = 0; 
@@ -69,46 +106,28 @@ void sendOrders(int cmd) {
    }
 }
 
-// Function which update Items we need to update Weekly
-void updateWeekly() {
-   N_VALUE = iATR(Symbol(), BASE_TIMEFRAME, 20, 1);
-}
+// Function of Check whether current price break the highest/lowest price
+void canSendOrder (int cmd) {
+   // if Current unit count is maximum, we should not order any more.
+   if (CURRENT_UNIT_COUNT >= MAXIMUM_UNIT_COUNT) return;
 
-// Function which update Target Price based on latest order's CMD and OpenPrice.
-void updateTargetPrice(int cmd, double latestOrderOpenPrice) {
-   double diffPrice = N_VALUE * UNIT_STEP_UP_PORTION;
-
-   if (cmd == OP_BUY) {
-      if(currentPrice >= TARGET_BUY_PRICE) TARGET_BUY_PRICE = latestOrderOpenPrice + diffPrice;
-   }
-   else if (cmd == OP_SELL) {
-      if (currentPrice <= TARGET_SELL_PRICE) TARGET_SELL_PRICE = latestOrderOpenPrice - diffPrice;
-   }
-}
-
-void setInitialTargetPrice() {
-   TARGET_BUY_PRICE = iHighest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
-   TARGET_SELL_PRICE = iLowest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);         
-}
-
-// Check whether current price break the highest/lowest price
-// Return 1 if cur > highest
-// Return -1 else if cur < lowest
-// Return 0 else
-int canSendOrder (int cmd) {
-   int result = 0;
    double currentPrice = Close[0];
 
    if (cmd == OP_BUY) {
-      if(currentPrice > TARGET_BUY_PRICE) result = 1;
+      if(currentPrice >= TARGET_BUY_PRICE) sendOrders(cmd);
    }
    else if (cmd == OP_SELL) {
-      if (currentPrice < TARGET_SELL_PRICE) result = -1;
+      if (currentPrice <= TARGET_SELL_PRICE) sendOrders(cmd);
    }
-   return result;
+   return;
 }
 
+// Function of check Unit Size for 1% Risk
+// TODO : Need to remove commented sources
 double getUnitSize() {
+      // if Current unit count is maximum, we should not order any more.
+      if (CURRENT_UNIT_COUNT == MAXIMUM_UNIT_COUNT) return 0;
+
       double tradableLotSize = 0;
       double dollarVolatility = N_VALUE * DOLLAR_PER_POINT;
       // PrintFormat("Expected SL Price per 1 Lot : %f", dollarVolatility);
