@@ -28,6 +28,7 @@ ENUM_TIMEFRAMES BASE_TIMEFRAME = PERIOD_D1;
 int currentDate = 0;
 double TARGET_BUY, TARGET_SELL, POSSIBLE_LOT_SIZE, YESTERDAY_ATR;
 double DOLLAR_VOLATILITY = MarketInfo(Symbol(), MODE_TICKVALUE) / MarketInfo(Symbol(), MODE_TICKSIZE) * MarketInfo(Symbol(), MODE_POINT);
+double MY_DIGIT = MarketInfo(Symbol(), MODE_DIGITS);
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -94,7 +95,7 @@ void OnTick()
                   if (OrderSelect(idx, SELECT_BY_POS, MODE_TRADES)) {
                      if (OrderMagicNumber() == MAGICNO && OrderSymbol() == Symbol()){
                         if (OrderType() == OP_BUY) {
-                           Print("Buy Order Exist");
+                        //    Print("Buy Order Exist");
                            positionExist = true;
                         }
                         else if (OrderType() == OP_SELL) {
@@ -124,11 +125,11 @@ void OnTick()
                   if (OrderSelect(idx, SELECT_BY_POS, MODE_TRADES)) {
                      if (OrderMagicNumber() == MAGICNO && OrderSymbol() == Symbol()){
                         if (OrderType() == OP_SELL) {
-                           Print("Sell Order Exist");
+                        //    Print("Sell Order Exist");
                            positionExist = true;
                         }
                         else if (OrderType() == OP_BUY) {
-                           Print("Buy Order Exist");
+                        //    Print("Buy Order Exist");
                            if(OrderClose(OrderTicket(), OrderLots(), Bid, 3, clrRed)){
                               Print("Sell Momentum is found. Close Buy Order");
                            }
@@ -148,7 +149,7 @@ void OnTick()
          } 
 
          if (newOrderExist) {
-            Print("StopLoss setting block");   
+            // Print("StopLoss setting block");   
             
             total = OrdersTotal();
             // Set Cur price on orders
@@ -159,21 +160,21 @@ void OnTick()
                      if (OrderType() == OP_BUY){
                         if(OrderStopLoss()== 0){
                            if(OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice() - YESTERDAY_ATR * ATR_STOPLOSS, 0, 0, clrWhite)){
-                              Print("Stop Set on Buy Order");                        
+                            //   Print("Stop Set on Buy Order");                        
                            }
-                           else {
-                              Print("Failed on set Stop on Buy Order");
-                           }
+                        //    else {
+                        //       Print("Failed on set Stop on Buy Order");
+                        //    }
                         }
                      }
                      else if (OrderType() == OP_SELL) {
                         if (OrderStopLoss() == 0){
                            if(OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice() + YESTERDAY_ATR * ATR_STOPLOSS, 0, 0, clrWhite)){
-                              Print("Stop Set on Sell Order");                        
+                            //   Print("Stop Set on Sell Order");                        
                            }
-                           else {
-                              Print("Failed on set Stop on Sell Order");
-                           }
+                        //    else {
+                        //       Print("Failed on set Stop on Sell Order");
+                        //    }
                         }
                      }
                   }
@@ -184,16 +185,17 @@ void OnTick()
   }
 
 bool sendOrders(int cmd, double price, double lotSize) {
+      double normalizedPrice = NormalizeDouble(price, MY_DIGIT);
       int completedOrderCount= 0;
       string comment = "";
 
       if (cmd == 0) comment = "Send BUY order";
       else if (cmd == 1) comment = "Send SELL order";
       
-      while (lotSize - MAX_LOT_SIZE_PER_ORDER > 0.0) {
+      while (lotSize - MAX_LOT_SIZE_PER_ORDER >= 0) {
          lotSize -= MAX_LOT_SIZE_PER_ORDER;
          PrintFormat("Order Lot Size : %f", MAX_LOT_SIZE_PER_ORDER);
-         if (OrderSend(Symbol(), cmd, MAX_LOT_SIZE_PER_ORDER, price, 3, 0, 0, comment, MAGICNO, 0, clrBlue)) {
+         if (OrderSend(Symbol(), cmd, MAX_LOT_SIZE_PER_ORDER, normalizedPrice, 3, 0, 0, comment, MAGICNO, 0, clrBlue)) {
             completedOrderCount++;                   
          }
          else {
@@ -203,7 +205,7 @@ bool sendOrders(int cmd, double price, double lotSize) {
    
       if (lotSize > 0) {
          PrintFormat("Order Lot Size : %f", lotSize);
-         if (OrderSend(Symbol(), cmd, lotSize, price, 3, 0, 0, comment, MAGICNO, 0, clrBlue)) {
+         if (OrderSend(Symbol(), cmd, lotSize, normalizedPrice, 3, 0, 0, comment, MAGICNO, 0, clrBlue)) {
             completedOrderCount++;             
          }
          else {
@@ -225,25 +227,16 @@ double getPossibleLotSize() {
       double maxRiskForAccount = AccountBalance() * RISK;
       // PrintFormat("Account : %f,  Max Lisk per trade : %f", AccountBalance(), maxRiskForAccount);
       double maxLotBasedOnSL = maxRiskForAccount / expectedSL;
-      
       double tradableMinLotSize = MarketInfo(Symbol(), MODE_MINLOT);
       double requiredMinBalance = tradableMinLotSize * expectedSL / RISK;
-      
-      PrintFormat("Tradable Minimum Lot Size on Symbol : %f", tradableMinLotSize);
 
-      PrintFormat("Required Minimum Account : %f", requiredMinBalance);
-      
-      PrintFormat("Lot Size Per SL : %f", maxLotBasedOnSL);
-      
-      if (AccountBalance() < requiredMinBalance) {
-         PrintFormat("You need at least %f for risk management. Find other item.", requiredMinBalance);
-         tradableLotSize = -1;
+      if (maxLotBasedOnSL >= tradableMinLotSize) {
+         tradableLotSize = maxLotBasedOnSL - MathMod(maxLotBasedOnSL, tradableMinLotSize);
       }
       else {
-         tradableLotSize = maxLotBasedOnSL - MathMod(maxLotBasedOnSL, tradableMinLotSize);
-         PrintFormat("What you wanted : %f\nTradable Size : %f", maxLotBasedOnSL, tradableLotSize);
+         PrintFormat("You need at least %f for risk management. Find other item.", requiredMinBalance);
       }
-      
+            
       return tradableLotSize;      
 }
 
