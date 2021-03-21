@@ -168,11 +168,17 @@ void sendOrders(int cmd, double price, double lotSize) {
       int ticketNum;
 
       if (cmd == 0) {
+          if (USE_RSI && !checkRSI()) lotSize = 0; 
+
           comment = "Send BUY order";
           stoplossPrice *= -1;
       }
-      else if (cmd == 1) comment = "Send SELL order";
-      
+      else if (cmd == 1) {
+          if (USE_RSI && checkRSI()) lotSize = 0; 
+
+          comment = "Send SELL order";
+      }
+
       while (lotSize > 0) {
          if (lotSize >= MAX_LOT_SIZE_PER_ORDER) {
             lotSize -= MAX_LOT_SIZE_PER_ORDER;
