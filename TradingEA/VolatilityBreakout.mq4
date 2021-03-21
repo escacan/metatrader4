@@ -29,6 +29,7 @@ int currentDate = 0;
 double TARGET_BUY, TARGET_SELL, POSSIBLE_LOT_SIZE, YESTERDAY_ATR;
 double DOLLAR_VOLATILITY = MarketInfo(Symbol(), MODE_TICKVALUE) / MarketInfo(Symbol(), MODE_TICKSIZE) * MarketInfo(Symbol(), MODE_POINT);
 double MY_DIGIT = MarketInfo(Symbol(), MODE_DIGITS);
+
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -39,7 +40,7 @@ int OnInit()
    
    PrintFormat("Cur ATR portion : %f, ATR SL portion : %f", ATR_PORTION, ATR_STOPLOSS);
    PrintFormat("Max Lot Size per Order : %f", MAX_LOT_SIZE_PER_ORDER);
- 
+
    return(INIT_SUCCEEDED);
   }
 //+------------------------------------------------------------------+
@@ -86,6 +87,8 @@ void OnTick()
 
          int OpenRes = -1;
          double currentPrice = Close[0];
+         int ticketArray[200] = {0};
+         int ticketCount = 0;
 
          if (currentPrice >= TARGET_BUY) {
             // PrintFormat("Cur Ask : %f, target Buy : %f", Ask, TARGET_BUY);
@@ -95,127 +98,104 @@ void OnTick()
                   if (OrderSelect(idx, SELECT_BY_POS, MODE_TRADES)) {
                      if (OrderMagicNumber() == MAGICNO && OrderSymbol() == Symbol()){
                         if (OrderType() == OP_BUY) {
-                        //    Print("Buy Order Exist");
                            positionExist = true;
                         }
                         else if (OrderType() == OP_SELL) {
                            Print("Sell Order Exist");
-                           if(OrderClose(OrderTicket(), OrderLots(), Ask, 3, clrRed)){
-                              Print("Buy Momentum is found. Close Sell Order");
-                           }
-                           else {
-                              PrintFormat("Close Order Failed :: ", GetLastError());
-                           }
+                           ticketArray[ticketCount++] = OrderTicket();
                         } 
                      }
                   }
                }
             }
+
+            if (ticketCount > 0) {
+                for (int i = 0; i< ticketCount; i++) {
+                    if (OrderSelect(ticketArray[i], SELECT_BY_TICKET, MODE_TRADES)) {
+                        if(OrderClose(OrderTicket(), OrderLots(), Ask, 3, clrRed)){
+                            Print("Buy Momentum is found. Close Sell Order");
+                        }
+                        else {
+                            PrintFormat("Close Order Failed :: ", GetLastError());
+                        }
+                    }
+                }
+            }
             
             if (!positionExist){
-            //    Print("BUY Order Block");
-               newOrderExist = sendOrders(OP_BUY, Ask, POSSIBLE_LOT_SIZE);
+               sendOrders(OP_BUY, Ask, POSSIBLE_LOT_SIZE);
             }
          }
          else if (currentPrice <= TARGET_SELL) {
-            // PrintFormat("Cur Bid : %f, target Sell : %f", Bid, TARGET_SELL);
-
             if (total > 0) {
                for (int idx = 0; idx < total; idx++){
                   if (OrderSelect(idx, SELECT_BY_POS, MODE_TRADES)) {
                      if (OrderMagicNumber() == MAGICNO && OrderSymbol() == Symbol()){
                         if (OrderType() == OP_SELL) {
-                        //    Print("Sell Order Exist");
                            positionExist = true;
                         }
                         else if (OrderType() == OP_BUY) {
-                        //    Print("Buy Order Exist");
-                           if(OrderClose(OrderTicket(), OrderLots(), Bid, 3, clrRed)){
-                              Print("Sell Momentum is found. Close Buy Order");
-                           }
-                           else{
-                              PrintFormat("Close Buy Order Failed : ", GetLastError());
-                           }
+                           ticketArray[ticketCount++] = OrderTicket();
                         }
                      }
                   }
                }
             }
             
+            if (ticketCount > 0) {
+                for (int i = 0; i< ticketCount; i++) {
+                    if (OrderSelect(ticketArray[i], SELECT_BY_TICKET, MODE_TRADES)) {
+                        if(OrderClose(OrderTicket(), OrderLots(), Bid, 3, clrRed)){
+                            Print("Sell Momentum is found. Close Buy Order");
+                        }
+                        else{
+                            PrintFormat("Close Buy Order Failed : ", GetLastError());
+                        }
+                    }
+                }
+            }
+
             if (!positionExist) {
-            //    Print("SELL Order Block");
-               newOrderExist = sendOrders(OP_SELL, Bid, POSSIBLE_LOT_SIZE);
+               sendOrders(OP_SELL, Bid, POSSIBLE_LOT_SIZE);
             }         
          } 
-
-         if (newOrderExist) {
-            // Print("StopLoss setting block");   
-            
-            total = OrdersTotal();
-            // Set Cur price on orders
-            
-            for(int i= 0; i< total; i++){
-               if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) {
-                  if(OrderMagicNumber() == MAGICNO && OrderSymbol() == Symbol()) {
-                     if (OrderType() == OP_BUY){
-                        if(OrderStopLoss()== 0){
-                           if(OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice() - YESTERDAY_ATR * ATR_STOPLOSS, 0, 0, clrWhite)){
-                            //   Print("Stop Set on Buy Order");                        
-                           }
-                        //    else {
-                        //       Print("Failed on set Stop on Buy Order");
-                        //    }
-                        }
-                     }
-                     else if (OrderType() == OP_SELL) {
-                        if (OrderStopLoss() == 0){
-                           if(OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice() + YESTERDAY_ATR * ATR_STOPLOSS, 0, 0, clrWhite)){
-                            //   Print("Stop Set on Sell Order");                        
-                           }
-                        //    else {
-                        //       Print("Failed on set Stop on Sell Order");
-                        //    }
-                        }
-                     }
-                  }
-               }
-            }
-         }
       }
   }
 
-bool sendOrders(int cmd, double price, double lotSize) {
-      double normalizedPrice = NormalizeDouble(price, MY_DIGIT);
-      int completedOrderCount= 0;
+void sendOrders(int cmd, double price, double lotSize) {
+      double stoplossPrice = YESTERDAY_ATR * ATR_STOPLOSS;
       string comment = "";
+      int ticketNum;
 
-      if (cmd == 0) comment = "Send BUY order";
+      if (cmd == 0) {
+          comment = "Send BUY order";
+          stoplossPrice *= -1;
+      }
       else if (cmd == 1) comment = "Send SELL order";
       
-      while (lotSize - MAX_LOT_SIZE_PER_ORDER >= 0) {
-         lotSize -= MAX_LOT_SIZE_PER_ORDER;
-         PrintFormat("Order Lot Size : %f", MAX_LOT_SIZE_PER_ORDER);
-         if (OrderSend(Symbol(), cmd, MAX_LOT_SIZE_PER_ORDER, normalizedPrice, 3, 0, 0, comment, MAGICNO, 0, clrBlue)) {
-            completedOrderCount++;                   
+      while (lotSize > 0) {
+         if (lotSize >= MAX_LOT_SIZE_PER_ORDER) {
+            lotSize -= MAX_LOT_SIZE_PER_ORDER;
+            PrintFormat("Order Lot Size : %f", MAX_LOT_SIZE_PER_ORDER);
+            ticketNum = OrderSend(Symbol(), cmd, MAX_LOT_SIZE_PER_ORDER, price, 3, 0, 0, comment, MAGICNO, 0, clrBlue);
          }
          else {
-            Print("sendOrders::206:: OrderSend Failed, ", GetLastError());         
+             PrintFormat("Order Lot Size : %f", lotSize);
+             ticketNum = OrderSend(Symbol(), cmd, lotSize, price, 3, 0, 0, comment, MAGICNO, 0, clrBlue);
+             lotSize = 0;
          }
-      }
-   
-      if (lotSize > 0) {
-         PrintFormat("Order Lot Size : %f", lotSize);
-         if (OrderSend(Symbol(), cmd, lotSize, normalizedPrice, 3, 0, 0, comment, MAGICNO, 0, clrBlue)) {
-            completedOrderCount++;             
+
+         if (ticketNum) {
+            if (OrderSelect(ticketNum, SELECT_BY_TICKET, MODE_TRADES)) {
+                if(!OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice() + stoplossPrice, 0, 0, clrWhite)){
+                    Alert("Fail OrderModify : Order ID = ", ticketNum);
+                }
+            }
          }
          else {
-            Print("sendOrders::216:: OrderSend Failed, ", GetLastError());         
+            Print("sendOrders::OrderSend Failed, ", GetLastError());         
          }
       }
-
-      PrintFormat("Total OrderSend Count : %d", completedOrderCount);
-
-      return completedOrderCount > 0;
    }
 
 double getPossibleLotSize() {
@@ -243,40 +223,48 @@ double getPossibleLotSize() {
 void bailoutOrders(int currentTime, int totalOrderCount, double openPrice) {
       bool CloseSuccess = false;
       int orderTime = 0;
+      int ticketArray[300] = {0};
+      int ticketCount = 0;
 
       if (totalOrderCount > 0) {
          Print("Bailout Exit Condition Check");
          for (int idx = 0; idx < totalOrderCount; idx++){
             if (OrderSelect(idx, SELECT_BY_POS, MODE_TRADES)) {
                if (OrderMagicNumber() == MAGICNO && OrderSymbol() == Symbol()){
-                  orderTime = TimeSeconds(OrderOpenTime());
-
                   if (OrderType() == OP_BUY) {
                      // 시가가 진입가보다 높은 경우
-                     // 혹은 주문하고 기준일이 지나간 경우
                      if (openPrice > OrderOpenPrice()) {
-                        CloseSuccess = OrderClose(OrderTicket(), OrderLots(), Bid, 3, White);
-                        if (CloseSuccess){
-                           Print("Bailout Buy Order");
-                        }
-                        else {
-                           Print("Bailout Buy Order Failed, ", GetLastError());
-                        }
+                        ticketArray[ticketCount++] = OrderTicket();
                      }
                   }
                   else if (OrderType() == OP_SELL) {
                      if (openPrice < OrderOpenPrice()) {
                         CloseSuccess = OrderClose(OrderTicket(), OrderLots(), Ask, 3, White);
-                        if (CloseSuccess) {
-                           Print("Bailout Sell Order");
-                        }
-                        else {
-                           Print("Bailout Sell Failed, ", GetLastError());
-                        }
+                        ticketArray[ticketCount++] = OrderTicket() * -1;
                      }                        
                   }
                }
             }
+         }
+      }
+
+      for (int i= 0; i< ticketCount; i++){
+         int curTicket = ticketArray[i];
+         double price = 0;
+         if (curTicket > 0) price = Bid;
+         else {
+             curTicket *= -1;
+             price = Ask;
+         }
+
+         if (OrderSelect(curTicket, SELECT_BY_TICKET, MODE_TRADES)) {
+            CloseSuccess = OrderClose(curTicket, OrderLots(), price, 3, White);
+            if (CloseSuccess){
+                Print("Bailout Order");
+            }
+            else {
+                Print("Bailout Buy Order Failed, ", GetLastError());
+            }         
          }
       }
    }
