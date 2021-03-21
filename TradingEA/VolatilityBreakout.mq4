@@ -27,7 +27,7 @@ input int      TIMEOUT_BASE = 5;
 ENUM_TIMEFRAMES BASE_TIMEFRAME = PERIOD_D1;
 int currentDate = 0;
 double TARGET_BUY, TARGET_SELL, POSSIBLE_LOT_SIZE, YESTERDAY_ATR;
-double DOLLAR_VOLATILITY = MarketInfo(Symbol(), MODE_TICKVALUE) / MarketInfo(Symbol(), MODE_TICKSIZE) * MarketInfo(Symbol(), MODE_POINT);
+double DOLLAR_VOLATILITY = MarketInfo(Symbol(), MODE_TICKVALUE) / MarketInfo(Symbol(), MODE_TICKSIZE);
 double MY_DIGIT = MarketInfo(Symbol(), MODE_DIGITS);
 
 //+------------------------------------------------------------------+
@@ -200,12 +200,16 @@ void sendOrders(int cmd, double price, double lotSize) {
 
 double getPossibleLotSize() {
       double tradableLotSize = 0;
+
+      PrintFormat("Tick Value : %f, Tick Size : %f, Point Size : %f", MarketInfo(Symbol(), MODE_TICKVALUE), MarketInfo(Symbol(), MODE_TICKSIZE), MarketInfo(Symbol(), MODE_POINT));
+      PrintFormat("Dollar Volatility : %f,  ATR : %f", DOLLAR_VOLATILITY, YESTERDAY_ATR);
+
       double ATR100forSL = YESTERDAY_ATR * DOLLAR_VOLATILITY;
       double expectedSL = ATR100forSL * ATR_STOPLOSS; // sl price for 1 lot
-      // PrintFormat("Expected SL Price per 1 Lot : %f", expectedSL);
+      PrintFormat("Expected SL Price per 1 Lot : %f", expectedSL);
       
       double maxRiskForAccount = AccountBalance() * RISK;
-      // PrintFormat("Account : %f,  Max Lisk per trade : %f", AccountBalance(), maxRiskForAccount);
+      PrintFormat("Account : %f,  Max Lisk per trade : %f", AccountBalance(), maxRiskForAccount);
       double maxLotBasedOnSL = maxRiskForAccount / expectedSL;
       double tradableMinLotSize = MarketInfo(Symbol(), MODE_MINLOT);
       double requiredMinBalance = tradableMinLotSize * expectedSL / RISK;
@@ -216,7 +220,8 @@ double getPossibleLotSize() {
       else {
          PrintFormat("You need at least %f for risk management. Find other item.", requiredMinBalance);
       }
-            
+
+      PrintFormat("You can buy %f Lots!", tradableLotSize);      
       return tradableLotSize;      
 }
 
