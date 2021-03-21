@@ -11,9 +11,9 @@
 extern int MAGICNO = 1; 
 //--- input parameters
 input double   MAX_LOT_SIZE_PER_ORDER = 50.0;
-input double   ATRportion = 1;
-input double   ATRSLportion = 0.5;
-input double   Risk = 0.15;
+input double   ATR_PORTION = 1;
+input double   ATR_STOPLOSS = 0.5;
+input double   RISK = 0.15;
 input double   BUY_TDW = 7;   // (0-Sunday, 1-Monday, ... ,6-Saturday)
 input double   SELL_TDW = 7;   // (0-Sunday, 1-Monday, ... ,6-Saturday)
 input bool     USE_OBV = true;
@@ -35,7 +35,7 @@ int OnInit()
 //---
    Print("Start VolatilityBreakout Trading");
    
-   PrintFormat("Cur ATR portion : %f, ATR SL portion : %f", ATRportion, ATRSLportion);
+   PrintFormat("Cur ATR portion : %f, ATR SL portion : %f", ATR_PORTION, ATR_STOPLOSS);
    PrintFormat("Max Lot Size per Order : %f", MAX_LOT_SIZE_PER_ORDER);
  
    return(INIT_SUCCEEDED);
@@ -68,7 +68,7 @@ void OnTick()
          currentDate = strDate.day;
          // PrintFormat("New Day : %d", currentDate);
          double yesterdayAtr = iATR(Symbol(), baseTimeFrame, 1, 1);
-         double targetRange = yesterdayAtr * ATRportion;
+         double targetRange = yesterdayAtr * ATR_PORTION;
          double curOpen = iOpen(Symbol(), baseTimeFrame, 0);
          
          PrintFormat("Today: %d, OpenPrice: %f, yesterday ATR: %f", currentDate, curOpen, yesterdayAtr); 
@@ -160,7 +160,7 @@ void OnTick()
                   if(OrderMagicNumber() == MAGICNO && OrderSymbol() == Symbol()) {
                      if (OrderType() == OP_BUY){
                         if(OrderStopLoss()== 0){
-                           if(OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice() - yesterdayAtr * ATRSLportion, 0, 0, White)){
+                           if(OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice() - yesterdayAtr * ATR_STOPLOSS, 0, 0, White)){
                               Print("Stop Set on Buy Order");                        
                            }
                            else {
@@ -170,7 +170,7 @@ void OnTick()
                      }
                      else if (OrderType() == OP_SELL) {
                         if (OrderStopLoss() == 0){
-                           if(OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice() + yesterdayAtr * ATRSLportion, 0, 0, White)){
+                           if(OrderModify(OrderTicket(), OrderOpenPrice(), OrderOpenPrice() + yesterdayAtr * ATR_STOPLOSS, 0, 0, White)){
                               Print("Stop Set on Sell Order");                        
                            }
                            else {
@@ -219,15 +219,15 @@ void sendOrders(int cmd, double price, double lotSize) {
 double getPossibleLotSize(double atrValue) {
       double tradableLotSize = 0;
       double ATR100forSL = atrValue / MarketInfo(Symbol(), MODE_TICKSIZE) * MarketInfo(Symbol(), MODE_TICKVALUE);
-      double expectedSL = ATR100forSL * ATRSLportion; // sl price for 1 lot
+      double expectedSL = ATR100forSL * ATR_STOPLOSS; // sl price for 1 lot
       // PrintFormat("Expected SL Price per 1 Lot : %f", expectedSL);
       
-      double maxRiskForAccount = AccountBalance() * Risk;
+      double maxRiskForAccount = AccountBalance() * RISK;
       // PrintFormat("Account : %f,  Max Lisk per trade : %f", AccountBalance(), maxRiskForAccount);
       double maxLotBasedOnSL = maxRiskForAccount / expectedSL;
       
       double tradableMinLotSize = MarketInfo(Symbol(), MODE_MINLOT);
-      double requiredMinBalance = tradableMinLotSize * expectedSL / Risk;
+      double requiredMinBalance = tradableMinLotSize * expectedSL / RISK;
       
       PrintFormat("Tradable Minimum Lot Size on Symbol : %f", tradableMinLotSize);
 
