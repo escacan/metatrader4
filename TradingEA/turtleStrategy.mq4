@@ -17,13 +17,16 @@ input int      BASE_TERM_FOR_BREAKOUT = 55;
 
 //--- Global Var
 ENUM_TIMEFRAMES BASE_TIMEFRAME = PERIOD_D1;
-double TARGET_BUY_PRICE, TARGET_SELL_PRICE;
+double TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE;
 int CURRENT_UNIT_COUNT = 0;
 int MAXIMUM_UNIT_COUNT = 4;
+int CURRENT_CMD = 0; // 0 : Buy  1 : Sell
 double N_VALUE = 0; // Need to Update Weekly
 double UNIT_STEP_UP_PORTION = 0.5; // Use this value for calculating new target price
+double STOPLOSS_PORTION = 2;
 double DOLLAR_PER_POINT = MarketInfo(Symbol(), MODE_TICKVALUE) / MarketInfo(Symbol(), MODE_TICKSIZE);
 
+double TICKET_ARR[4][20] = 0;
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -82,27 +85,41 @@ void updateTargetPrice(int cmd, double latestOrderOpenPrice) {
 
 // Function of Sending Order. When Order made, update Unit count and target price.
 // Send order for [ (targetLotSize / Maximum lot size) + 1 ] times.
-void sendOrders(int cmd) {
+void sendOrders(int cmd, double price) {
    // Send Order
-   if (cmd == OP_BUY){
+   double stoplossPrice = N_VALUE * STOPLOSS_PORTION;
+   string comment = "";
+   int ticketNum;
+
+   if (cmd == 0) {
+         comment = "Send BUY order";
+         stoplossPrice *= -1;
+   }
+   else if (cmd == 1) {
+         comment = "Send SELL order";
+   }
+
+   double lotSize = getUnitSize();
    
-   }
-   else if (cmd == OP_SELL) {
+   while (lotSize > 0) {
+      if (lotSize >= MAX_LOT_SIZE_PER_ORDER) {
+         lotSize -= MAX_LOT_SIZE_PER_ORDER;
+         PrintFormat("Order Lot Size : %f", MAX_LOT_SIZE_PER_ORDER);
+         ticketNum = OrderSend(Symbol(), cmd, MAX_LOT_SIZE_PER_ORDER, price, 3, 0, 0, comment, MAGICNO, 0, clrBlue);
+      }
+      else {
+            PrintFormat("Order Lot Size : %f", lotSize);
+            ticketNum = OrderSend(Symbol(), cmd, lotSize, price, 3, 0, 0, comment, MAGICNO, 0, clrBlue);
+            lotSize = 0;
+      }
 
-   }
-   else {
-      return;
-   }
+      if (ticketNum) {
+         TICKET_ARR[CURRENT_UNIT_COUNT++] = ticketNum;
 
-   if (true) { // OrderSend() == true
-      // updateTargetPrice based on OrderOpenPrice
-      double openPrice = 0; 
-
-      updateTargetPrice(cmd, openPrice);
-      CURRENT_UNIT_COUNT++;
-   }
-   else {
-      PrintFormat("sendOrders:: OrderSend Failed - ", GetLastError());
+         if (OrderSelect(ticketNum, SELECT_BY_TICKET, MODE_TRADES)) {
+            TARGET_STOPLOSS_PRICE = OrderOpenPrice() + stoplossPrice;
+         } 
+      }
    }
 }
 
@@ -114,10 +131,10 @@ void canSendOrder (int cmd) {
    double currentPrice = Close[0];
 
    if (cmd == OP_BUY) {
-      if(currentPrice >= TARGET_BUY_PRICE) sendOrders(cmd);
+      if(currentPrice >= TARGET_BUY_PRICE) sendOrders(cmd, Ask);
    }
    else if (cmd == OP_SELL) {
-      if (currentPrice <= TARGET_SELL_PRICE) sendOrders(cmd);
+      if (currentPrice <= TARGET_SELL_PRICE) sendOrders(cmd, Bid);
    }
    return;
 }
@@ -131,31 +148,28 @@ double getUnitSize() {
       double tradableLotSize = 0;
       double dollarVolatility = N_VALUE * DOLLAR_PER_POINT;
       // PrintFormat("Expected SL Price per 1 Lot : %f", dollarVolatility);
-      
-      double maxRiskForAccount = NOTIONAL_BALANCE * RISK;
+      double maxRiskForAccount = 0;
+
+      if (NOTIONAL_BALANCE <= AccountBalance()) {
+         maxRiskForAccount = NOTIONAL_BALANCE * RISK;
+      }
+      else {
+         maxRiskForAccount = AccountBalance() * RISK;
+      }
 
       double maxLotBasedOnDollarVolatility = maxRiskForAccount / dollarVolatility;
       
       double tradableMinLotSize = MarketInfo(Symbol(), MODE_MINLOT);
       double requiredMinBalance = tradableMinLotSize * dollarVolatility / RISK;
       
-      PrintFormat("Tradable Minimum Lot Size on Symbol : %f", tradableMinLotSize);
-      PrintFormat("Required Minimum Account : %f", requiredMinBalance);
+      if (maxLotBasedOnDollarVolatility >= tradableMinLotSize) {
+         tradableLotSize = maxLotBasedOnDollarVolatility - MathMod(maxLotBasedOnDollarVolatility, tradableMinLotSize);
+      }
+      else {
+         PrintFormat("You need at least %f for risk management. Find other item.", requiredMinBalance);
+      }
 
-      PrintFormat("Notional Balance : %f", NOTIONAL_BALANCE);
-
-      tradableLotSize = maxLotBasedOnDollarVolatility - MathMod(maxLotBasedOnDollarVolatility, tradableMinLotSize);
-      PrintFormat("You can trade : %f", tradableLotSize);
-
-      // if (AccountBalance() < requiredMinBalance) {
-      //    PrintFormat("You need at least %f for risk management. Find other item.", requiredMinBalance);
-      //    tradableLotSize = -1;
-      // }
-      // else {
-      //    tradableLotSize = maxLotBasedOnDollarVolatility - MathMod(maxLotBasedOnDollarVolatility, tradableMinLotSize);
-      //    PrintFormat("You can trade : %f", tradableLotSize);
-      // }
-      
+      PrintFormat("You can buy %f Lots!", tradableLotSize);      
       return tradableLotSize;      
 }
 
