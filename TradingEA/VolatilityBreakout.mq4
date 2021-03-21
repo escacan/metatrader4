@@ -170,11 +170,15 @@ void sendOrders(int cmd, double price, double lotSize) {
       if (cmd == 0) {
           if (USE_RSI && !checkRSI()) lotSize = 0; 
 
+          if (USE_OBV && !checkOBV()) lotSize = 0;
+
           comment = "Send BUY order";
           stoplossPrice *= -1;
       }
       else if (cmd == 1) {
           if (USE_RSI && checkRSI()) lotSize = 0; 
+
+          if (USE_OBV && checkOBV()) lotSize = 0;
 
           comment = "Send SELL order";
       }
