@@ -24,9 +24,9 @@ input bool     USE_TIMEOUT_ORDER = false;
 input int      TIMEOUT_BASE = 5;
 
 //--- Global Var
-ENUM_TIMEFRAMES baseTimeFrame = PERIOD_D1;
+ENUM_TIMEFRAMES BASE_TIMEFRAME = PERIOD_D1;
 int currentDate = 0;
-double targetBuyPrice, targetSellPrice, possibleLotSize;
+double targetBuyPrice, targetSellPrice, possibleLotSize, yesterdayAtr;
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -67,17 +67,17 @@ void OnTick()
       if (strDate.day != currentDate) {
          currentDate = strDate.day;
          // PrintFormat("New Day : %d", currentDate);
-         double yesterdayAtr = iATR(Symbol(), baseTimeFrame, 1, 1);
+         yesterdayAtr = iATR(Symbol(), BASE_TIMEFRAME, 1, 1);
          double targetRange = yesterdayAtr * ATR_PORTION;
-         double curOpen = iOpen(Symbol(), baseTimeFrame, 0);
+         double todayOpen = iOpen(Symbol(), BASE_TIMEFRAME, 0);
          
-         PrintFormat("Today: %d, OpenPrice: %f, yesterday ATR: %f", currentDate, curOpen, yesterdayAtr); 
+         PrintFormat("Today: %d, OpenPrice: %f, yesterday ATR: %f", currentDate, todayOpen, yesterdayAtr); 
 
-         bailoutOrders(currentTime, total, curOpen);
+         bailoutOrders(currentTime, total, todayOpen);
          
          possibleLotSize = getPossibleLotSize(yesterdayAtr);
-         targetBuyPrice = curOpen + targetRange;
-         targetSellPrice = curOpen - targetRange;   
+         targetBuyPrice = todayOpen + targetRange;
+         targetSellPrice = todayOpen - targetRange;   
       }
       else {
          int OpenRes = -1;
@@ -153,7 +153,7 @@ void OnTick()
             
             total = OrdersTotal();
             // Set Cur price on orders
-            double yesterdayAtr = iATR(Symbol(), baseTimeFrame, 1, 1);
+            double yesterdayAtr = iATR(Symbol(), BASE_TIMEFRAME, 1, 1);
             
             for(int i= 0; i< total; i++){
                if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES)) {
@@ -259,28 +259,23 @@ void bailoutOrders(int currentTime, int totalOrderCount, double openPrice) {
                   orderTime = TimeSeconds(OrderOpenTime());
 
                   if (OrderType() == OP_BUY) {
-                     PrintFormat("Order Info :: Today's Open : %f, OrderOpenPrice : %f", openPrice, OrderOpenPrice());
-
                      // 시가가 진입가보다 높은 경우
                      // 혹은 주문하고 기준일이 지나간 경우
-                     if (openPrice > OrderOpenPrice() || timeoutOrder(currentTime, orderTime)) {
+                     if (openPrice > OrderOpenPrice()) {
                         CloseSuccess = OrderClose(OrderTicket(), OrderLots(), Bid, 3, White);
                         if (CloseSuccess){
                            Print("Bailout Buy Order");
-                           totalOrderCount--;
                         }
                         else {
-                           Print("Bailout Buy Failed, ", GetLastError());
+                           Print("Bailout Buy Order Failed, ", GetLastError());
                         }
                      }
                   }
                   else if (OrderType() == OP_SELL) {
-                     PrintFormat("Order Info :: Today's Open : %f, OrderOpenPrice : %f", openPrice, OrderOpenPrice());
-                     if (openPrice < OrderOpenPrice() || timeoutOrder(currentTime, orderTime)) {
+                     if (openPrice < OrderOpenPrice()) {
                         CloseSuccess = OrderClose(OrderTicket(), OrderLots(), Ask, 3, White);
                         if (CloseSuccess) {
                            Print("Bailout Sell Order");
-                           totalOrderCount--;
                         }
                         else {
                            Print("Bailout Sell Failed, ", GetLastError());
@@ -298,8 +293,8 @@ bool checkOBV() {
       // Return true when OBV is increased
       // Return false when OBV is decreased
    
-      double latestObvValue = iOBV(Symbol(), baseTimeFrame, 0, 1);
-      double oldObvValue = iOBV(Symbol(), baseTimeFrame, 0, 1 + OBV_BASE);  
+      double latestObvValue = iOBV(Symbol(), BASE_TIMEFRAME, 0, 1);
+      double oldObvValue = iOBV(Symbol(), BASE_TIMEFRAME, 0, 1 + OBV_BASE);  
 
       bool res = true;
       if (latestObvValue - oldObvValue < 0) res = false;
@@ -311,7 +306,7 @@ bool checkRSI() {
       // Return true when RSI > 0.5
       // Return false when RSI < 0.5
 
-      double rsiValue = iRSI(Symbol(), baseTimeFrame, RSI_PERIOD, 0, 1);
+      double rsiValue = iRSI(Symbol(), BASE_TIMEFRAME, RSI_PERIOD, 0, 1);
       if (rsiValue > 0.5) return true;
       return false;
    }
