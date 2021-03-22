@@ -60,7 +60,7 @@ void OnDeinit(const int reason)
 void OnTick()
   {
 //--- 
-   Comment(StringFormat("Show prices\nAsk = %G\nBid = %G\nTargetBuy = %f\nTargetSell = %f\nTARGET_STOPLOSS_PRICE = %f\n",Ask,Bid,TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE));
+   Comment(StringFormat("Current Unit Count : %d\nShow prices\nAsk = %G\nBid = %G\nTargetBuy = %f\nTargetSell = %f\nTARGET_STOPLOSS_PRICE = %f\n",CURRENT_UNIT_COUNT,Ask,Bid,TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE));
 
    datetime tempDate = TimeCurrent();
    int currentTime = TimeSeconds(tempDate);
@@ -106,11 +106,11 @@ void updateTargetPrice() {
    else if (CURRENT_UNIT_COUNT == 0) {
       int highBarIndex = iHighest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
       if (highBarIndex == -1) TARGET_BUY_PRICE = 99999999999999;
-      else TARGET_BUY_PRICE = High[highBarIndex];
+      else TARGET_BUY_PRICE = iHigh(Symbol(), BASE_TERM_FOR_BREAKOUT, highBarIndex);
 
       int lowBarIndex = iLowest(Symbol(), BASE_TIMEFRAME,MODE_LOW, BASE_TERM_FOR_BREAKOUT, 1);
       if (lowBarIndex == -1) TARGET_SELL_PRICE = -9999999999;
-      else TARGET_SELL_PRICE = Low[lowBarIndex];
+      else TARGET_SELL_PRICE = iLow(Symbol(), BASE_TERM_FOR_BREAKOUT, lowBarIndex);
    }
 }
 
@@ -196,20 +196,23 @@ void closeAllOrders () {
 
       int highBarIndex = iHighest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_PROFIT, 1);
       if (highBarIndex == -1) profitSellPrice = 99999999999999;
-      else profitSellPrice = High[highBarIndex];
+      else profitSellPrice = iHigh(Symbol(), BASE_TERM_FOR_PROFIT, highBarIndex);
 
       int lowBarIndex = iLowest(Symbol(), BASE_TIMEFRAME,MODE_LOW, BASE_TERM_FOR_PROFIT, 1);
       if (lowBarIndex == -1) profitBuyPrice = -9999999999;
-      else profitBuyPrice = Low[lowBarIndex];
+      else profitBuyPrice = iLow(Symbol(), BASE_TERM_FOR_PROFIT, lowBarIndex);
 
       Comment(StringFormat("ProfitBuyPrice = %f\nProfitSellPrice = %f\n",profitBuyPrice,profitSellPrice));
 
       if (CURRENT_CMD == OP_BUY) {
          if (currentPrice <= TARGET_STOPLOSS_PRICE) {
-            int totalTicketCount = TICKET_ARR[--CURRENT_UNIT_COUNT][0];
+            CURRENT_UNIT_COUNT--;
+            int totalTicketCount = TICKET_ARR[CURRENT_UNIT_COUNT][0];
 
             for (int ticketIdx = 1; ticketIdx <= totalTicketCount; ticketIdx++) {
                int ticketNum = TICKET_ARR[CURRENT_UNIT_COUNT][ticketIdx];
+
+               PrintFormat("215::Close order of UNIT %d", CURRENT_UNIT_COUNT);
 
                if (OrderSelect(ticketNum, SELECT_BY_TICKET, MODE_TRADES)) {
                   if (!OrderClose(OrderTicket(), OrderLots(), Bid, 3, White)) {
@@ -227,6 +230,8 @@ void closeAllOrders () {
 
                for (int ticketIdx = 1; ticketIdx <= totalTicketCount; ticketIdx++) {
                   int ticketNum = TICKET_ARR[unitIdx][ticketIdx];
+
+                  PrintFormat("234::Close order of UNIT %d", CURRENT_UNIT_COUNT);
 
                   if (OrderSelect(ticketNum, SELECT_BY_TICKET, MODE_TRADES)) {
                      if (!OrderClose(OrderTicket(), OrderLots(), Bid, 3, White)) {
@@ -246,7 +251,8 @@ void closeAllOrders () {
       }
       else if (CURRENT_CMD == OP_SELL) {
          if (currentPrice >= TARGET_STOPLOSS_PRICE ) {
-            int totalTicketCount = TICKET_ARR[--CURRENT_UNIT_COUNT][0];
+            CURRENT_UNIT_COUNT--;
+            int totalTicketCount = TICKET_ARR[CURRENT_UNIT_COUNT][0];
 
             for (int ticketIdx = 1; ticketIdx <= totalTicketCount; ticketIdx++) {
                int ticketNum = TICKET_ARR[CURRENT_UNIT_COUNT][ticketIdx];
