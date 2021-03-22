@@ -8,7 +8,7 @@
 #property version   "1.00"
 #property strict
 
-extern int MagicNo = 3; 
+extern int MAGICNO = 3; 
 //--- input parameters
 input double   MAX_LOT_SIZE_PER_ORDER = 50.0;
 input double   RISK = 0.01;
@@ -26,7 +26,7 @@ double UNIT_STEP_UP_PORTION = 0.5; // Use this value for calculating new target 
 double STOPLOSS_PORTION = 2;
 double DOLLAR_PER_POINT = MarketInfo(Symbol(), MODE_TICKVALUE) / MarketInfo(Symbol(), MODE_TICKSIZE);
 
-double TICKET_ARR[4][20] = {0};
+int TICKET_ARR[4][20] = {0};
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -209,6 +209,8 @@ void closeAllOrders () {
 void canSendOrder () {
    closeAllOrders();
 
+   double currentPrice = Close[0];
+   
    // if Current unit count is maximum, we should not order any more.
    if (CURRENT_UNIT_COUNT >= MAXIMUM_UNIT_COUNT) return;
 
