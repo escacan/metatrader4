@@ -166,9 +166,9 @@ void closeAllOrders () {
                int totalTicketCount = TICKET_ARR[unitIdx][0];
 
                for (int ticketIdx = 1; ticketIdx <= totalTicketCount; ticketIdx++) {
-                  int curTicket = TICKET_ARR[unitIdx][ticketIdx];
+                  int ticketNum = TICKET_ARR[unitIdx][ticketIdx];
 
-                  if (OrderSelect(curTicket, SELECT_BY_TICKET, MODE_TRADES)) {
+                  if (OrderSelect(ticketNum, SELECT_BY_TICKET, MODE_TRADES)) {
                      if (!OrderClose(OrderTicket(), OrderLots(), Bid, 3, White)) {
                         Alert("Fail OrderClose : Order ID = ", ticketNum);
                      }
@@ -187,9 +187,9 @@ void closeAllOrders () {
                int totalTicketCount = TICKET_ARR[unitIdx][0];
 
                for (int ticketIdx = 1; ticketIdx <= totalTicketCount; ticketIdx++) {
-                  int curTicket = TICKET_ARR[unitIdx][ticketIdx];
+                  int ticketNum = TICKET_ARR[unitIdx][ticketIdx];
 
-                  if (OrderSelect(curTicket, SELECT_BY_TICKET, MODE_TRADES)) {
+                  if (OrderSelect(ticketNum, SELECT_BY_TICKET, MODE_TRADES)) {
                      if (!OrderClose(OrderTicket(), OrderLots(), Ask, 3, White)) {
                         Alert("Fail OrderClose : Order ID = ", ticketNum);
                      }
