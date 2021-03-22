@@ -18,15 +18,16 @@ input int      BASE_TERM_FOR_PROFIT = 10;
 input int      MAXIMUM_UNIT_COUNT = 4;
 input double   UNIT_STEP_UP_PORTION = 0.5; // Use this value for calculating new target price
 input double   STOPLOSS_PORTION = 2;
+input ENUM_TIMEFRAMES PRICE_TIMEFRAME = PERIOD_M15;
 
 //--- Global Var
-ENUM_TIMEFRAMES PRICE_TIMEFRAME = PERIOD_M15;
 ENUM_TIMEFRAMES BASE_TIMEFRAME = PERIOD_D1;
 double TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE;
 int CURRENT_UNIT_COUNT = 0;
 int CURRENT_CMD = OP_BUY; // 0 : Buy  1 : Sell
 double N_VALUE = 0; // Need to Update Weekly
 double DOLLAR_PER_POINT = 0;
+int currentDate = 0;
 
 int TICKET_ARR[4][20] = {0};
 //+------------------------------------------------------------------+
@@ -59,7 +60,16 @@ void OnDeinit(const int reason)
 void OnTick()
   {
 //--- 
-   updateWeekly();
+   datetime tempDate = TimeCurrent();
+   int currentTime = TimeSeconds(tempDate);
+   MqlDateTime strDate;
+   TimeToStruct(tempDate, strDate);
+
+   // Daily Update
+   if (strDate.day != currentDate) {
+      updateWeekly();
+   }
+
    if (CURRENT_UNIT_COUNT == 0) updateTargetPrice();
    canSendOrder();
   }
@@ -67,7 +77,6 @@ void OnTick()
 // Function which update Items we need to update Weekly
 void updateWeekly() {
    N_VALUE = iATR(Symbol(), BASE_TIMEFRAME, 20, 1);
-   PrintFormat("N Value : %f", N_VALUE);
 }
 
 // Function which update Target Price based on latest order's CMD and OpenPrice.
@@ -259,7 +268,7 @@ double getUnitSize() {
          PrintFormat("You need at least %f for risk management. Find other item.", requiredMinBalance);
       }
 
-      PrintFormat("You can buy %f Lots!", tradableLotSize);      
+      // PrintFormat("You can buy %f Lots!", tradableLotSize);      
       return tradableLotSize;      
 }
 
