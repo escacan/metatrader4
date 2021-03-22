@@ -20,7 +20,7 @@ ENUM_TIMEFRAMES BASE_TIMEFRAME = PERIOD_D1;
 double TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE;
 int CURRENT_UNIT_COUNT = 0;
 int MAXIMUM_UNIT_COUNT = 4;
-int CURRENT_CMD = 0; // 0 : Buy  1 : Sell
+int CURRENT_CMD = OP_BUY; // 0 : Buy  1 : Sell
 double N_VALUE = 0; // Need to Update Weekly
 double UNIT_STEP_UP_PORTION = 0.5; // Use this value for calculating new target price
 double STOPLOSS_PORTION = 2;
@@ -54,7 +54,7 @@ void OnDeinit(const int reason)
 void OnTick()
   {
 //--- 
-
+   
   }
 
 // Function which update Items we need to update Weekly
@@ -63,17 +63,38 @@ void updateWeekly() {
 }
 
 // Function which update Target Price based on latest order's CMD and OpenPrice.
-void updateTargetPrice(int cmd, double latestOrderOpenPrice) {
+void updateTargetPrice() {
    double diffPrice = N_VALUE * UNIT_STEP_UP_PORTION;
-   
+   double diffStopLoss = N_VALUE * STOPLOSS_PORTION;
+   if (CURRENT_CMD == OP_BUY) diffStopLoss *= -1;
+
+   double latestOrderOpenPrice = 0;
+   double targetStopLoss = 0;
+
+   if (CURRENT_UNIT_COUNT > 0) {
+      int totalTicketCount = TICKET_ARR[CURRENT_UNIT_COUNT-1][0];
+      int ticketNum = TICKET_ARR[CURRENT_UNIT_COUNT-1][totalTicketCount];
+      if (OrderSelect(ticketNum, SELECT_BY_TICKET, MODE_TRADES)) {
+         latestOrderOpenPrice = OrderOpenPrice();
+         targetStopLoss = latestOrderOpenPrice + diffStopLoss;
+
+         if (CURRENT_CMD == OP_BUY) {
+            if (TARGET_STOPLOSS_PRICE < targetStopLoss) TARGET_STOPLOSS_PRICE = targetStopLoss;
+         }
+         else if (CURRENT_CMD == OP_SELL) {
+            if (TARGET_STOPLOSS_PRICE > targetStopLoss) TARGET_STOPLOSS_PRICE = targetStopLoss;
+         }
+      }
+   }   
+
    if (CURRENT_UNIT_COUNT == MAXIMUM_UNIT_COUNT) {
       return;
    }
    else if (CURRENT_UNIT_COUNT > 0) {
-      if (cmd == OP_BUY) {
+      if (CURRENT_CMD == OP_BUY) {
          TARGET_BUY_PRICE = latestOrderOpenPrice + diffPrice;
       }
-      else if (cmd == OP_SELL) {
+      else if (CURRENT_CMD == OP_SELL) {
          TARGET_SELL_PRICE = latestOrderOpenPrice - diffPrice;
       }
    }
@@ -90,6 +111,8 @@ void sendOrders(int cmd, double price) {
    double stoplossPrice = N_VALUE * STOPLOSS_PORTION;
    string comment = "";
    int ticketNum;
+   TICKET_ARR[CURRENT_UNIT_COUNT][0] = 0;
+   int sentOrderCount = 0;
 
    if (cmd == 0) {
          comment = "Send BUY order";
@@ -113,29 +136,85 @@ void sendOrders(int cmd, double price) {
             lotSize = 0;
       }
 
+      // There could be multiple orders for same unit. Fix Arr index
       if (ticketNum) {
-         TICKET_ARR[CURRENT_UNIT_COUNT++] = ticketNum;
+         sentOrderCount++;
+         CURRENT_CMD = cmd;
+         TICKET_ARR[CURRENT_UNIT_COUNT][sentOrderCount] = ticketNum;
+      }
 
-         if (OrderSelect(ticketNum, SELECT_BY_TICKET, MODE_TRADES)) {
-            TARGET_STOPLOSS_PRICE = OrderOpenPrice() + stoplossPrice;
-         } 
+      if (sentOrderCount > 0) {
+         TICKET_ARR[CURRENT_UNIT_COUNT][0] = sentOrderCount;
+         CURRENT_UNIT_COUNT++;
+
+         updateTargetPrice();
+      }
+   }
+}
+
+void closeAllOrders () {
+   // Check STOP LOSS
+   if (CURRENT_UNIT_COUNT > 0) {
+      double currentPrice = Close[0];
+
+      double profitSellPrice = iHighest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
+      double profitBuyPrice = iLowest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
+
+      if (CURRENT_CMD == OP_BUY) {
+         if (currentPrice <= TARGET_STOPLOSS_PRICE || currentPrice <= profitBuyPrice) {
+            for (int unitIdx = 0; unitIdx < CURRENT_UNIT_COUNT; unitIdx++) {
+               int totalTicketCount = TICKET_ARR[unitIdx][0];
+
+               for (int ticketIdx = 1; ticketIdx <= totalTicketCount; ticketIdx++) {
+                  int curTicket = TICKET_ARR[unitIdx][ticketIdx];
+
+                  if (OrderSelect(curTicket, SELECT_BY_TICKET, MODE_TRADES)) {
+                     if (!OrderClose(OrderTicket(), OrderLots(), Bid, 3, White)) {
+                        Alert("Fail OrderClose : Order ID = ", ticketNum);
+                     }
+                  }
+               }
+
+               TICKET_ARR[unitIdx][0] = 0;
+            }
+
+            CURRENT_UNIT_COUNT = 0;
+         }
+      }
+      else if (CURRENT_CMD == OP_SELL) {
+         if (currentPrice >= TARGET_STOPLOSS_PRICE || currentPrice >= profitSellPrice) {
+            for (int unitIdx = 0; unitIdx < CURRENT_UNIT_COUNT; unitIdx++) {
+               int totalTicketCount = TICKET_ARR[unitIdx][0];
+
+               for (int ticketIdx = 1; ticketIdx <= totalTicketCount; ticketIdx++) {
+                  int curTicket = TICKET_ARR[unitIdx][ticketIdx];
+
+                  if (OrderSelect(curTicket, SELECT_BY_TICKET, MODE_TRADES)) {
+                     if (!OrderClose(OrderTicket(), OrderLots(), Ask, 3, White)) {
+                        Alert("Fail OrderClose : Order ID = ", ticketNum);
+                     }
+                  }
+               }
+
+               TICKET_ARR[unitIdx][0] = 0;
+            }
+
+            CURRENT_UNIT_COUNT = 0;
+         }
       }
    }
 }
 
 // Function of Check whether current price break the highest/lowest price
-void canSendOrder (int cmd) {
+void canSendOrder () {
+   closeAllOrders();
+
    // if Current unit count is maximum, we should not order any more.
    if (CURRENT_UNIT_COUNT >= MAXIMUM_UNIT_COUNT) return;
 
-   double currentPrice = Close[0];
+   if(currentPrice >= TARGET_BUY_PRICE) sendOrders(OP_BUY, Ask);
+   else if (currentPrice <= TARGET_SELL_PRICE) sendOrders(OP_SELL, Bid);
 
-   if (cmd == OP_BUY) {
-      if(currentPrice >= TARGET_BUY_PRICE) sendOrders(cmd, Ask);
-   }
-   else if (cmd == OP_SELL) {
-      if (currentPrice <= TARGET_SELL_PRICE) sendOrders(cmd, Bid);
-   }
    return;
 }
 
