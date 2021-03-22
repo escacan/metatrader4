@@ -254,7 +254,6 @@ void bailoutOrders(int currentTime, int totalOrderCount, double openPrice) {
                   }
                   else if (OrderType() == OP_SELL) {
                      if (openPrice < OrderOpenPrice()) {
-                        CloseSuccess = OrderClose(OrderTicket(), OrderLots(), Ask, 3, White);
                         ticketArray[ticketCount++] = OrderTicket() * -1;
                      }                        
                   }
