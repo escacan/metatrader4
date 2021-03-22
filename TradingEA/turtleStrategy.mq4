@@ -97,27 +97,17 @@ void updateTargetPrice() {
 
          if (CURRENT_CMD == OP_BUY) {
             if (TARGET_STOPLOSS_PRICE < targetStopLoss) TARGET_STOPLOSS_PRICE = targetStopLoss;
+            TARGET_BUY_PRICE = latestOrderOpenPrice + diffPrice;
          }
          else if (CURRENT_CMD == OP_SELL) {
             if (TARGET_STOPLOSS_PRICE > targetStopLoss) TARGET_STOPLOSS_PRICE = targetStopLoss;
+            TARGET_SELL_PRICE = latestOrderOpenPrice - diffPrice;
          }
-      }
-   }   
-
-   if (CURRENT_UNIT_COUNT == MAXIMUM_UNIT_COUNT) {
-      return;
-   }
-   else if (CURRENT_UNIT_COUNT > 0) {
-      if (CURRENT_CMD == OP_BUY) {
-         TARGET_BUY_PRICE = latestOrderOpenPrice + diffPrice;
-      }
-      else if (CURRENT_CMD == OP_SELL) {
-         TARGET_SELL_PRICE = latestOrderOpenPrice - diffPrice;
       }
    }
    else if (CURRENT_UNIT_COUNT == 0) {
-      TARGET_BUY_PRICE = iHighest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1) + MarketInfo(NULL, MODE_TICKSIZE);
-      TARGET_SELL_PRICE = iLowest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1) - MarketInfo(NULL, MODE_TICKSIZE);
+      TARGET_BUY_PRICE = iHighest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
+      TARGET_SELL_PRICE = iLowest(Symbol(), BASE_TIMEFRAME,MODE_LOW, BASE_TERM_FOR_BREAKOUT, 1);
    }
 }
 
