@@ -18,7 +18,7 @@ input int      BASE_TERM_FOR_PROFIT = 10;
 input int      MAXIMUM_UNIT_COUNT = 4;
 input double   UNIT_STEP_UP_PORTION = 0.5; // Use this value for calculating new target price
 input double   STOPLOSS_PORTION = 2;
-input ENUM_TIMEFRAMES PRICE_TIMEFRAME = PERIOD_M15;
+input ENUM_TIMEFRAMES PRICE_TIMEFRAME = PERIOD_CURRENT;
 
 //--- Global Var
 ENUM_TIMEFRAMES BASE_TIMEFRAME = PERIOD_D1;
@@ -106,8 +106,13 @@ void updateTargetPrice() {
       }
    }
    else if (CURRENT_UNIT_COUNT == 0) {
-      TARGET_BUY_PRICE = iHighest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
-      TARGET_SELL_PRICE = iLowest(Symbol(), BASE_TIMEFRAME,MODE_LOW, BASE_TERM_FOR_BREAKOUT, 1);
+      int highBarIndex = iHighest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
+      if (highBarIndex == -1) TARGET_BUY_PRICE = 99999999999999;
+      else TARGET_BUY_PRICE = High[highBarIndex];
+
+      int lowBarIndex = iLowest(Symbol(), BASE_TIMEFRAME,MODE_LOW, BASE_TERM_FOR_BREAKOUT, 1);
+      if (lowBarIndex == -1) TARGET_SELL_PRICE = -9999999999;
+      else TARGET_SELL_PRICE = Low[lowBarIndex];
    }
 }
 
@@ -164,8 +169,8 @@ void closeAllOrders () {
    if (CURRENT_UNIT_COUNT > 0) {
       double currentPrice = iOpen(Symbol(), PRICE_TIMEFRAME, 0);
 
-      double profitSellPrice = iHighest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
-      double profitBuyPrice = iLowest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
+      double profitSellPrice = iHighest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_PROFIT, 1);
+      double profitBuyPrice = iLowest(Symbol(), BASE_TIMEFRAME,MODE_LOW, BASE_TERM_FOR_PROFIT, 1);
 
       if (CURRENT_CMD == OP_BUY) {
          if (currentPrice <= TARGET_STOPLOSS_PRICE || currentPrice <= profitBuyPrice) {
@@ -222,9 +227,14 @@ void canSendOrder () {
    // if Current unit count is maximum, we should not order any more.
    if (CURRENT_UNIT_COUNT >= MAXIMUM_UNIT_COUNT) return;
 
-   if(currentPrice >= TARGET_BUY_PRICE) sendOrders(OP_BUY, Ask);
-   else if (currentPrice <= TARGET_SELL_PRICE) sendOrders(OP_SELL, Bid);
-
+   if(currentPrice >= TARGET_BUY_PRICE) {
+      PrintFormat("Send Buy Order On Cur Price : %f, Target Buy Price : %f", currentPrice, TARGET_BUY_PRICE);
+      sendOrders(OP_BUY, Ask);
+   }
+   else if (currentPrice <= TARGET_SELL_PRICE) {
+      sendOrders(OP_SELL, Bid);
+      PrintFormat("Send Sell Order On Cur Price : %f, Target Sell Price : %f", currentPrice, TARGET_SELL_PRICE);
+   }
    return;
 }
 
