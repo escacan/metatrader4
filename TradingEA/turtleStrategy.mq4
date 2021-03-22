@@ -18,7 +18,7 @@ input int      BASE_TERM_FOR_PROFIT = 10;
 input int      MAXIMUM_UNIT_COUNT = 4;
 input double   UNIT_STEP_UP_PORTION = 0.5; // Use this value for calculating new target price
 input double   STOPLOSS_PORTION = 2;
-input ENUM_TIMEFRAMES PRICE_TIMEFRAME = PERIOD_CURRENT;
+input ENUM_TIMEFRAMES PRICE_TIMEFRAME = PERIOD_M15;
 
 //--- Global Var
 ENUM_TIMEFRAMES BASE_TIMEFRAME = PERIOD_D1;
@@ -60,6 +60,8 @@ void OnDeinit(const int reason)
 void OnTick()
   {
 //--- 
+   Comment(StringFormat("Show prices\nAsk = %G\nBid = %G\nTargetBuy = %f\nTargetSell = %f\nTARGET_STOPLOSS_PRICE = %f\n",Ask,Bid,TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE));
+
    datetime tempDate = TimeCurrent();
    int currentTime = TimeSeconds(tempDate);
    MqlDateTime strDate;
@@ -168,9 +170,18 @@ void closeAllOrders () {
    // Check STOP LOSS
    if (CURRENT_UNIT_COUNT > 0) {
       double currentPrice = iOpen(Symbol(), PRICE_TIMEFRAME, 0);
+      double profitBuyPrice = 0;
+      double profitSellPrice = 0;
 
-      double profitSellPrice = iHighest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_PROFIT, 1);
-      double profitBuyPrice = iLowest(Symbol(), BASE_TIMEFRAME,MODE_LOW, BASE_TERM_FOR_PROFIT, 1);
+      int highBarIndex = iHighest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_PROFIT, 1);
+      if (highBarIndex == -1) TARGET_BUY_PRICE = 99999999999999;
+      else profitBuyPrice = High[highBarIndex];
+
+      int lowBarIndex = iLowest(Symbol(), BASE_TIMEFRAME,MODE_LOW, BASE_TERM_FOR_PROFIT, 1);
+      if (lowBarIndex == -1) TARGET_SELL_PRICE = -9999999999;
+      else profitSellPrice = Low[lowBarIndex];
+
+      Comment(StringFormat("ProfitBuyPrice = %f\nProfitSellPrice = %f\n",profitBuyPrice,profitSellPrice));
 
       if (CURRENT_CMD == OP_BUY) {
          if (currentPrice <= TARGET_STOPLOSS_PRICE || currentPrice <= profitBuyPrice) {
