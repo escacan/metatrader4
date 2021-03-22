@@ -180,12 +180,12 @@ void closeAllOrders () {
       double profitSellPrice = 0;
 
       int highBarIndex = iHighest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_PROFIT, 1);
-      if (highBarIndex == -1) TARGET_BUY_PRICE = 99999999999999;
-      else profitBuyPrice = High[highBarIndex];
+      if (highBarIndex == -1) profitSellPrice = 99999999999999;
+      else profitSellPrice = High[highBarIndex];
 
       int lowBarIndex = iLowest(Symbol(), BASE_TIMEFRAME,MODE_LOW, BASE_TERM_FOR_PROFIT, 1);
-      if (lowBarIndex == -1) TARGET_SELL_PRICE = -9999999999;
-      else profitSellPrice = Low[lowBarIndex];
+      if (lowBarIndex == -1) profitBuyPrice = -9999999999;
+      else profitBuyPrice = Low[lowBarIndex];
 
       Comment(StringFormat("ProfitBuyPrice = %f\nProfitSellPrice = %f\n",profitBuyPrice,profitSellPrice));
 
@@ -193,9 +193,22 @@ void closeAllOrders () {
       // When the order closed, we should update ARR.
 
       // When Price is high and turned down to PROFIT PRICE, close All the orders
-
+      // TODO : DETACH Stop Loss from Profit breakout.
       if (CURRENT_CMD == OP_BUY) {
-         if (currentPrice <= TARGET_STOPLOSS_PRICE || currentPrice <= profitBuyPrice) {
+         if (currentPrice <= TARGET_STOPLOSS_PRICE) {
+            int totalTicketCount = TICKET_ARR[--CURRENT_UNIT_COUNT][0];
+
+            for (int ticketIdx = 1; ticketIdx <= totalTicketCount; ticketIdx++) {
+               int ticketNum = TICKET_ARR[CURRENT_UNIT_COUNT][ticketIdx];
+
+               if (OrderSelect(ticketNum, SELECT_BY_TICKET, MODE_TRADES)) {
+                  if (!OrderClose(OrderTicket(), OrderLots(), Bid, 3, White)) {
+                     Alert("Fail OrderClose : Order ID = ", ticketNum);
+                  }
+               }
+            }
+         }
+         else if (currentPrice <= profitBuyPrice) {
             for (int unitIdx = 0; unitIdx < CURRENT_UNIT_COUNT; unitIdx++) {
                int totalTicketCount = TICKET_ARR[unitIdx][0];
 
@@ -216,7 +229,20 @@ void closeAllOrders () {
          }
       }
       else if (CURRENT_CMD == OP_SELL) {
-         if (currentPrice >= TARGET_STOPLOSS_PRICE || currentPrice >= profitSellPrice) {
+         if (currentPrice >= TARGET_STOPLOSS_PRICE ) {
+            int totalTicketCount = TICKET_ARR[--CURRENT_UNIT_COUNT][0];
+
+            for (int ticketIdx = 1; ticketIdx <= totalTicketCount; ticketIdx++) {
+               int ticketNum = TICKET_ARR[CURRENT_UNIT_COUNT][ticketIdx];
+
+               if (OrderSelect(ticketNum, SELECT_BY_TICKET, MODE_TRADES)) {
+                  if (!OrderClose(OrderTicket(), OrderLots(), Ask, 3, White)) {
+                     Alert("Fail OrderClose : Order ID = ", ticketNum);
+                  }
+               }
+            }
+         }
+         else if (currentPrice >= profitSellPrice) {
             for (int unitIdx = 0; unitIdx < CURRENT_UNIT_COUNT; unitIdx++) {
                int totalTicketCount = TICKET_ARR[unitIdx][0];
 
