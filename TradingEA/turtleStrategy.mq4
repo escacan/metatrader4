@@ -14,17 +14,18 @@ input double   MAX_LOT_SIZE_PER_ORDER = 50.0;
 input double   RISK = 0.01;
 input double   NOTIONAL_BALANCE = 5000;
 input int      BASE_TERM_FOR_BREAKOUT = 55;
+input int      BASE_TERM_FOR_PROFIT = 55;
+input int      MAXIMUM_UNIT_COUNT = 4;
+input double   UNIT_STEP_UP_PORTION = 0.5; // Use this value for calculating new target price
+input double   STOPLOSS_PORTION = 2;
 
 //--- Global Var
 ENUM_TIMEFRAMES BASE_TIMEFRAME = PERIOD_D1;
 double TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE;
 int CURRENT_UNIT_COUNT = 0;
-int MAXIMUM_UNIT_COUNT = 4;
 int CURRENT_CMD = OP_BUY; // 0 : Buy  1 : Sell
 double N_VALUE = 0; // Need to Update Weekly
-double UNIT_STEP_UP_PORTION = 0.5; // Use this value for calculating new target price
-double STOPLOSS_PORTION = 2;
-double DOLLAR_PER_POINT = MarketInfo(Symbol(), MODE_TICKVALUE) / MarketInfo(Symbol(), MODE_TICKSIZE);
+double DOLLAR_PER_POINT = 0;
 
 int TICKET_ARR[4][20] = {0};
 //+------------------------------------------------------------------+
@@ -33,6 +34,9 @@ int TICKET_ARR[4][20] = {0};
 int OnInit()
   {
 //---
+   DOLLAR_PER_POINT = MarketInfo(Symbol(), MODE_TICKVALUE) / MarketInfo(Symbol(), MODE_TICKSIZE);
+   N_VALUE = iATR(Symbol(), BASE_TIMEFRAME, 20, 1);
+
    Print("Start Turtle Trading");
    PrintFormat("Dollar Per Point : %f", DOLLAR_PER_POINT);
 
@@ -54,12 +58,15 @@ void OnDeinit(const int reason)
 void OnTick()
   {
 //--- 
-   
+   updateWeekly();
+   if (CURRENT_UNIT_COUNT == 0) updateTargetPrice();
+   canSendOrder();
   }
 
 // Function which update Items we need to update Weekly
 void updateWeekly() {
    N_VALUE = iATR(Symbol(), BASE_TIMEFRAME, 20, 1);
+   PrintFormat("N Value : %f", N_VALUE);
 }
 
 // Function which update Target Price based on latest order's CMD and OpenPrice.
