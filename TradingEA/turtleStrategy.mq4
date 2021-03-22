@@ -216,6 +216,7 @@ void closeAllOrders () {
 void canSendOrder () {
    closeAllOrders();
 
+   // TODO : Let's try with M15 Bar close price.
    double currentPrice = Close[0];
    
    // if Current unit count is maximum, we should not order any more.
