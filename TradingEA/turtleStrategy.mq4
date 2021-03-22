@@ -106,11 +106,11 @@ void updateTargetPrice() {
    else if (CURRENT_UNIT_COUNT == 0) {
       int highBarIndex = iHighest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
       if (highBarIndex == -1) TARGET_BUY_PRICE = 99999999999999;
-      else TARGET_BUY_PRICE = iHigh(Symbol(), BASE_TERM_FOR_BREAKOUT, highBarIndex);
+      else TARGET_BUY_PRICE = iHigh(Symbol(), BASE_TIMEFRAME, highBarIndex);
 
       int lowBarIndex = iLowest(Symbol(), BASE_TIMEFRAME,MODE_LOW, BASE_TERM_FOR_BREAKOUT, 1);
       if (lowBarIndex == -1) TARGET_SELL_PRICE = -9999999999;
-      else TARGET_SELL_PRICE = iLow(Symbol(), BASE_TERM_FOR_BREAKOUT, lowBarIndex);
+      else TARGET_SELL_PRICE = iLow(Symbol(), BASE_TIMEFRAME, lowBarIndex);
    }
 }
 
@@ -196,13 +196,13 @@ void closeAllOrders () {
 
       int highBarIndex = iHighest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_PROFIT, 1);
       if (highBarIndex == -1) profitSellPrice = 99999999999999;
-      else profitSellPrice = iHigh(Symbol(), BASE_TERM_FOR_PROFIT, highBarIndex);
+      else profitSellPrice = iHigh(Symbol(), BASE_TIMEFRAME, highBarIndex);
 
       int lowBarIndex = iLowest(Symbol(), BASE_TIMEFRAME,MODE_LOW, BASE_TERM_FOR_PROFIT, 1);
       if (lowBarIndex == -1) profitBuyPrice = -9999999999;
-      else profitBuyPrice = iLow(Symbol(), BASE_TERM_FOR_PROFIT, lowBarIndex);
+      else profitBuyPrice = iLow(Symbol(), BASE_TIMEFRAME, lowBarIndex);
 
-      Comment(StringFormat("ProfitBuyPrice = %f\nProfitSellPrice = %f\n",profitBuyPrice,profitSellPrice));
+      Comment(StringFormat("ProfitBuyPrice = %f, Index = %d\nProfitSellPrice = %f, Index = %d\n",profitBuyPrice, lowBarIndex,profitSellPrice, highBarIndex));
 
       if (CURRENT_CMD == OP_BUY) {
          if (currentPrice <= TARGET_STOPLOSS_PRICE) {
