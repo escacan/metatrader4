@@ -26,7 +26,7 @@ double UNIT_STEP_UP_PORTION = 0.5; // Use this value for calculating new target 
 double STOPLOSS_PORTION = 2;
 double DOLLAR_PER_POINT = MarketInfo(Symbol(), MODE_TICKVALUE) / MarketInfo(Symbol(), MODE_TICKSIZE);
 
-double TICKET_ARR[4][20] = 0;
+double TICKET_ARR[4][20] = {0};
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
