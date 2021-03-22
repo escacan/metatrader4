@@ -183,6 +183,11 @@ void closeAllOrders () {
 
       Comment(StringFormat("ProfitBuyPrice = %f\nProfitSellPrice = %f\n",profitBuyPrice,profitSellPrice));
 
+      // TODO : For each of Orders, stop loss is OrderOpen - 1/2 * N_Value
+      // When the order closed, we should update ARR.
+
+      // When Price is high and turned down to PROFIT PRICE, close All the orders
+
       if (CURRENT_CMD == OP_BUY) {
          if (currentPrice <= TARGET_STOPLOSS_PRICE || currentPrice <= profitBuyPrice) {
             for (int unitIdx = 0; unitIdx < CURRENT_UNIT_COUNT; unitIdx++) {
