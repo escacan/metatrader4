@@ -43,8 +43,6 @@ int OnInit()
 
    Print("Start Turtle Trading");
    PrintFormat("Dollar Per Point : %f", DOLLAR_PER_POINT);
-
-   double tradableLotSize = getUnitSize();
  
    return(INIT_SUCCEEDED);
   }
@@ -122,7 +120,7 @@ void sendOrders(int cmd, double price) {
    // Send Order
    double stoplossPrice = N_VALUE * STOPLOSS_PORTION;
    string comment = "";
-   int ticketNum;
+   int ticketNum = -1;
    TICKET_ARR[CURRENT_UNIT_COUNT][0] = 0;
    int sentOrderCount = 0;
 
@@ -159,11 +157,26 @@ void sendOrders(int cmd, double price) {
    if (sentOrderCount > 0) {
       TICKET_ARR[CURRENT_UNIT_COUNT][0] = sentOrderCount;
 
-      if (OrderSelect(ticketNum, SELECT_BY_TICKET, MODE_TRADES)) {
-         OPENPRICE_ARR[CURRENT_UNIT_COUNT] = OrderOpenPrice();
+      if (ticketNum == -1) {
+         for (int idx = 1; idx<= sentOrderCount; idx++) {
+            ticketNum = TICKET_ARR[CURRENT_UNIT_COUNT][idx];
+
+            if (OrderSelect(ticketNum, SELECT_BY_TICKET, MODE_TRADES)) {
+               OPENPRICE_ARR[CURRENT_UNIT_COUNT] = OrderOpenPrice();
+               break;
+            }
+            else {
+               Alert("Fail OrderSelect : Order ID = ", ticketNum);
+            }
+         }
       }
       else {
-         Alert("Fail OrderSelect : Order ID = ", ticketNum);
+         if (OrderSelect(ticketNum, SELECT_BY_TICKET, MODE_TRADES)) {
+            OPENPRICE_ARR[CURRENT_UNIT_COUNT] = OrderOpenPrice();
+         }
+         else {
+            Alert("Fail OrderSelect : Order ID = ", ticketNum);
+         }
       }
 
       CURRENT_UNIT_COUNT++;
@@ -173,6 +186,8 @@ void sendOrders(int cmd, double price) {
 }
 
 void closeAllOrders () {
+   bool closedOrderExist = false;
+
    // Check STOP LOSS
    if (CURRENT_UNIT_COUNT > 0) {
       double currentPrice = iOpen(Symbol(), PRICE_TIMEFRAME, 0);
@@ -189,11 +204,6 @@ void closeAllOrders () {
 
       Comment(StringFormat("ProfitBuyPrice = %f\nProfitSellPrice = %f\n",profitBuyPrice,profitSellPrice));
 
-      // TODO : For each of Orders, stop loss is OrderOpen - 1/2 * N_Value
-      // When the order closed, we should update ARR.
-
-      // When Price is high and turned down to PROFIT PRICE, close All the orders
-      // TODO : DETACH Stop Loss from Profit breakout.
       if (CURRENT_CMD == OP_BUY) {
          if (currentPrice <= TARGET_STOPLOSS_PRICE) {
             int totalTicketCount = TICKET_ARR[--CURRENT_UNIT_COUNT][0];
@@ -204,6 +214,9 @@ void closeAllOrders () {
                if (OrderSelect(ticketNum, SELECT_BY_TICKET, MODE_TRADES)) {
                   if (!OrderClose(OrderTicket(), OrderLots(), Bid, 3, White)) {
                      Alert("Fail OrderClose : Order ID = ", ticketNum);
+                  }
+                  else {
+                     closedOrderExist = true;
                   }
                }
             }
@@ -218,6 +231,9 @@ void closeAllOrders () {
                   if (OrderSelect(ticketNum, SELECT_BY_TICKET, MODE_TRADES)) {
                      if (!OrderClose(OrderTicket(), OrderLots(), Bid, 3, White)) {
                         Alert("Fail OrderClose : Order ID = ", ticketNum);
+                     }
+                     else {
+                        closedOrderExist = true;
                      }
                   }
                }
@@ -239,6 +255,9 @@ void closeAllOrders () {
                   if (!OrderClose(OrderTicket(), OrderLots(), Ask, 3, White)) {
                      Alert("Fail OrderClose : Order ID = ", ticketNum);
                   }
+                  else {
+                     closedOrderExist = true;
+                  }
                }
             }
          }
@@ -253,6 +272,9 @@ void closeAllOrders () {
                      if (!OrderClose(OrderTicket(), OrderLots(), Ask, 3, White)) {
                         Alert("Fail OrderClose : Order ID = ", ticketNum);
                      }
+                     else {
+                        closedOrderExist = true;
+                     }
                   }
                }
 
@@ -263,17 +285,19 @@ void closeAllOrders () {
          }
       }
    }
+
+   if (closedOrderExist) updateTargetPrice();
 }
 
 // Function of Check whether current price break the highest/lowest price
 void canSendOrder () {
    closeAllOrders();
 
-   // TODO : Let's try with M15 Bar close price.
-   double currentPrice = iOpen(Symbol(), PRICE_TIMEFRAME, 0);
-   
    // if Current unit count is maximum, we should not order any more.
    if (CURRENT_UNIT_COUNT >= MAXIMUM_UNIT_COUNT) return;
+
+   // TODO : Let's try with M15 Bar close price.
+   double currentPrice = iOpen(Symbol(), PRICE_TIMEFRAME, 0);
 
    if(currentPrice >= TARGET_BUY_PRICE) {
       PrintFormat("Send Buy Order On Cur Price : %f, Target Buy Price : %f", currentPrice, TARGET_BUY_PRICE);
