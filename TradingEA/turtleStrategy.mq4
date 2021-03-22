@@ -95,20 +95,20 @@ void updateTargetPrice() {
       targetStopLoss = latestOrderOpenPrice + diffStopLoss;
 
       if (CURRENT_CMD == OP_BUY) {
-         if (TARGET_STOPLOSS_PRICE < targetStopLoss) TARGET_STOPLOSS_PRICE = targetStopLoss;
+         TARGET_STOPLOSS_PRICE = targetStopLoss;
          TARGET_BUY_PRICE = latestOrderOpenPrice + diffPrice;
       }
       else if (CURRENT_CMD == OP_SELL) {
-         if (TARGET_STOPLOSS_PRICE > targetStopLoss) TARGET_STOPLOSS_PRICE = targetStopLoss;
+         TARGET_STOPLOSS_PRICE = targetStopLoss;
          TARGET_SELL_PRICE = latestOrderOpenPrice - diffPrice;
       }
    }
    else if (CURRENT_UNIT_COUNT == 0) {
-      int highBarIndex = iHighest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
+      int highBarIndex = iHighest(Symbol(), BASE_TIMEFRAME, MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
       if (highBarIndex == -1) TARGET_BUY_PRICE = 99999999999999;
       else TARGET_BUY_PRICE = iHigh(Symbol(), BASE_TIMEFRAME, highBarIndex);
 
-      int lowBarIndex = iLowest(Symbol(), BASE_TIMEFRAME,MODE_LOW, BASE_TERM_FOR_BREAKOUT, 1);
+      int lowBarIndex = iLowest(Symbol(), BASE_TIMEFRAME, MODE_LOW, BASE_TERM_FOR_BREAKOUT, 1);
       if (lowBarIndex == -1) TARGET_SELL_PRICE = -9999999999;
       else TARGET_SELL_PRICE = iLow(Symbol(), BASE_TIMEFRAME, lowBarIndex);
    }
@@ -149,12 +149,12 @@ void sendOrders(int cmd, double price) {
       // There could be multiple orders for same unit. Fix Arr index
       if (ticketNum) {
          sentOrderCount++;
-         CURRENT_CMD = cmd;
          TICKET_ARR[CURRENT_UNIT_COUNT][sentOrderCount] = ticketNum;
       }
    }
 
    if (sentOrderCount > 0) {
+      CURRENT_CMD = cmd;
       TICKET_ARR[CURRENT_UNIT_COUNT][0] = sentOrderCount;
 
       if (ticketNum == -1) {
@@ -201,8 +201,6 @@ void closeAllOrders () {
       int lowBarIndex = iLowest(Symbol(), BASE_TIMEFRAME,MODE_LOW, BASE_TERM_FOR_PROFIT, 1);
       if (lowBarIndex == -1) profitBuyPrice = -9999999999;
       else profitBuyPrice = iLow(Symbol(), BASE_TIMEFRAME, lowBarIndex);
-
-      Comment(StringFormat("ProfitBuyPrice = %f, Index = %d\nProfitSellPrice = %f, Index = %d\n",profitBuyPrice, lowBarIndex,profitSellPrice, highBarIndex));
 
       if (CURRENT_CMD == OP_BUY) {
          if (currentPrice <= TARGET_STOPLOSS_PRICE) {
@@ -305,15 +303,26 @@ void canSendOrder () {
    // TODO : Let's try with M15 Bar close price.
    double currentPrice = iOpen(Symbol(), PRICE_TIMEFRAME, 0);
 
-   if(currentPrice >= TARGET_BUY_PRICE) {
-      PrintFormat("Send Buy Order On Cur Price : %f, Target Buy Price : %f", currentPrice, TARGET_BUY_PRICE);
-      sendOrders(OP_BUY, Ask);
+   if (CURRENT_UNIT_COUNT > 0) {
+      if(currentPrice >= TARGET_BUY_PRICE && CURRENT_CMD == OP_BUY) {
+         PrintFormat("Send Buy Order On Cur Price : %f, Target Buy Price : %f", currentPrice, TARGET_BUY_PRICE);
+         sendOrders(OP_BUY, Ask);
+      }
+      else if (currentPrice <= TARGET_SELL_PRICE && CURRENT_CMD == OP_SELL) {
+         PrintFormat("Send Sell Order On Cur Price : %f, Target Sell Price : %f", currentPrice, TARGET_SELL_PRICE);
+         sendOrders(OP_SELL, Bid);
+      }
    }
-   else if (currentPrice <= TARGET_SELL_PRICE) {
-      sendOrders(OP_SELL, Bid);
-      PrintFormat("Send Sell Order On Cur Price : %f, Target Sell Price : %f", currentPrice, TARGET_SELL_PRICE);
+   else {
+      if(currentPrice >= TARGET_BUY_PRICE) {
+         PrintFormat("Send Buy Order On Cur Price : %f, Target Buy Price : %f", currentPrice, TARGET_BUY_PRICE);
+         sendOrders(OP_BUY, Ask);
+      }
+      else if (currentPrice <= TARGET_SELL_PRICE) {
+         sendOrders(OP_SELL, Bid);
+         PrintFormat("Send Sell Order On Cur Price : %f, Target Sell Price : %f", currentPrice, TARGET_SELL_PRICE);
+      }
    }
-   return;
 }
 
 // Function of check Unit Size for 1% Risk
