@@ -14,12 +14,14 @@ input double   MAX_LOT_SIZE_PER_ORDER = 50.0;
 input double   RISK = 0.01;
 input double   NOTIONAL_BALANCE = 5000;
 input int      BASE_TERM_FOR_BREAKOUT = 55;
-input int      BASE_TERM_FOR_PROFIT = 55;
+input int      BASE_TERM_FOR_PROFIT = 10;
+input 
 input int      MAXIMUM_UNIT_COUNT = 4;
 input double   UNIT_STEP_UP_PORTION = 0.5; // Use this value for calculating new target price
 input double   STOPLOSS_PORTION = 2;
 
 //--- Global Var
+ENUM_TIMEFRAMES PRICE_TIMEFRAME = PERIOD_M15;
 ENUM_TIMEFRAMES BASE_TIMEFRAME = PERIOD_D1;
 double TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE;
 int CURRENT_UNIT_COUNT = 0;
@@ -162,7 +164,7 @@ void sendOrders(int cmd, double price) {
 void closeAllOrders () {
    // Check STOP LOSS
    if (CURRENT_UNIT_COUNT > 0) {
-      double currentPrice = Close[0];
+      double currentPrice = iOpen(Symbol(), PRICE_TIMEFRAME, 0);
 
       double profitSellPrice = iHighest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
       double profitBuyPrice = iLowest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
@@ -217,7 +219,7 @@ void canSendOrder () {
    closeAllOrders();
 
    // TODO : Let's try with M15 Bar close price.
-   double currentPrice = Close[0];
+   double currentPrice = iOpen(Symbol(), PRICE_TIMEFRAME, 0);
    
    // if Current unit count is maximum, we should not order any more.
    if (CURRENT_UNIT_COUNT >= MAXIMUM_UNIT_COUNT) return;
