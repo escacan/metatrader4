@@ -29,7 +29,9 @@ double N_VALUE = 0; // Need to Update Weekly
 double DOLLAR_PER_POINT = 0;
 int currentDate = 0;
 
-int TICKET_ARR[4][20] = {0};
+int TICKET_ARR[4][200] = {0};
+double OPENPRICE_ARR[4] = {0};
+
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
 //+------------------------------------------------------------------+
@@ -91,20 +93,16 @@ void updateTargetPrice() {
    double targetStopLoss = 0;
 
    if (CURRENT_UNIT_COUNT > 0) {
-      int totalTicketCount = TICKET_ARR[CURRENT_UNIT_COUNT-1][0];
-      int ticketNum = TICKET_ARR[CURRENT_UNIT_COUNT-1][totalTicketCount];
-      if (OrderSelect(ticketNum, SELECT_BY_TICKET, MODE_TRADES)) {
-         latestOrderOpenPrice = OrderOpenPrice();
-         targetStopLoss = latestOrderOpenPrice + diffStopLoss;
+      latestOrderOpenPrice = OPENPRICE_ARR[CURRENT_UNIT_COUNT - 1];
+      targetStopLoss = latestOrderOpenPrice + diffStopLoss;
 
-         if (CURRENT_CMD == OP_BUY) {
-            if (TARGET_STOPLOSS_PRICE < targetStopLoss) TARGET_STOPLOSS_PRICE = targetStopLoss;
-            TARGET_BUY_PRICE = latestOrderOpenPrice + diffPrice;
-         }
-         else if (CURRENT_CMD == OP_SELL) {
-            if (TARGET_STOPLOSS_PRICE > targetStopLoss) TARGET_STOPLOSS_PRICE = targetStopLoss;
-            TARGET_SELL_PRICE = latestOrderOpenPrice - diffPrice;
-         }
+      if (CURRENT_CMD == OP_BUY) {
+         if (TARGET_STOPLOSS_PRICE < targetStopLoss) TARGET_STOPLOSS_PRICE = targetStopLoss;
+         TARGET_BUY_PRICE = latestOrderOpenPrice + diffPrice;
+      }
+      else if (CURRENT_CMD == OP_SELL) {
+         if (TARGET_STOPLOSS_PRICE > targetStopLoss) TARGET_STOPLOSS_PRICE = targetStopLoss;
+         TARGET_SELL_PRICE = latestOrderOpenPrice - diffPrice;
       }
    }
    else if (CURRENT_UNIT_COUNT == 0) {
@@ -145,9 +143,9 @@ void sendOrders(int cmd, double price) {
          ticketNum = OrderSend(Symbol(), cmd, MAX_LOT_SIZE_PER_ORDER, price, 3, 0, 0, comment, MAGICNO, 0, clrBlue);
       }
       else {
-            PrintFormat("Order Lot Size : %f", lotSize);
-            ticketNum = OrderSend(Symbol(), cmd, lotSize, price, 3, 0, 0, comment, MAGICNO, 0, clrBlue);
-            lotSize = 0;
+         PrintFormat("Order Lot Size : %f", lotSize);
+         ticketNum = OrderSend(Symbol(), cmd, lotSize, price, 3, 0, 0, comment, MAGICNO, 0, clrBlue);
+         lotSize = 0;
       }
 
       // There could be multiple orders for same unit. Fix Arr index
@@ -156,13 +154,21 @@ void sendOrders(int cmd, double price) {
          CURRENT_CMD = cmd;
          TICKET_ARR[CURRENT_UNIT_COUNT][sentOrderCount] = ticketNum;
       }
+   }
 
-      if (sentOrderCount > 0) {
-         TICKET_ARR[CURRENT_UNIT_COUNT][0] = sentOrderCount;
-         CURRENT_UNIT_COUNT++;
+   if (sentOrderCount > 0) {
+      TICKET_ARR[CURRENT_UNIT_COUNT][0] = sentOrderCount;
 
-         updateTargetPrice();
+      if (OrderSelect(ticketNum, SELECT_BY_TICKET, MODE_TRADES)) {
+         OPENPRICE_ARR[CURRENT_UNIT_COUNT] = OrderOpenPrice();
       }
+      else {
+         Alert("Fail OrderSelect : Order ID = ", ticketNum);
+      }
+
+      CURRENT_UNIT_COUNT++;
+
+      updateTargetPrice();
    }
 }
 
