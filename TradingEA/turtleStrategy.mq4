@@ -16,7 +16,7 @@ input double   NOTIONAL_BALANCE = 5000;
 input int      BASE_TERM_FOR_BREAKOUT = 55;
 input int      BASE_TERM_FOR_PROFIT = 10;
 input int      MAXIMUM_UNIT_COUNT = 4;
-input double   UNIT_STEP_UP_PORTION = 0.5; // Use this value for calculating new target price
+input double   UNIT_STEP_UP_PORTION = 0.5; 
 input double   STOPLOSS_PORTION = 0.5;
 input ENUM_TIMEFRAMES PRICE_TIMEFRAME = PERIOD_M15;
 
