@@ -17,7 +17,7 @@ input int      BASE_TERM_FOR_BREAKOUT = 55;
 input int      BASE_TERM_FOR_PROFIT = 10;
 input int      MAXIMUM_UNIT_COUNT = 4;
 input double   UNIT_STEP_UP_PORTION = 0.5; // Use this value for calculating new target price
-input double   STOPLOSS_PORTION = 2;
+input double   STOPLOSS_PORTION = 0.5;
 input ENUM_TIMEFRAMES PRICE_TIMEFRAME = PERIOD_M15;
 
 //--- Global Var
@@ -43,7 +43,10 @@ int OnInit()
 
    Print("Start Turtle Trading");
    PrintFormat("Dollar Per Point : %f", DOLLAR_PER_POINT);
- 
+
+   double tradableSize = getUnitSize();
+   PrintFormat("You can trade %f on this Item", tradableSize);
+
    return(INIT_SUCCEEDED);
   }
 //+------------------------------------------------------------------+
