@@ -367,3 +367,20 @@ double getUnitSize() {
       return tradableLotSize;      
 }
 
+// Function of checking current Item's Power.
+// Check price movement during the 3 months
+double checkPower() {
+   // Current Price - Price Prior to 3 months  /  N  
+   double currentPrice = iOpen(Symbol(), PERIOD_D1, 0);
+   double prevPrice = iOpen(Symbol(), PERIOD_D1, 90);
+
+   double result = (currentPrice - prevPrice) / N_VALUE;
+   return result;
+}
+
+// Function of setting GlobalVar for Current Item's UNIT Count.
+void setGlobalVar() {
+   if(GlobalVariableSet(Symbol(), CURRENT_UNIT_COUNT) == 0) {
+      PrintFormat("GlobalVariableSet Failed : ", GetLastError());
+   }
+}
