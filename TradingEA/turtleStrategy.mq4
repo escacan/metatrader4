@@ -303,6 +303,11 @@ void canSendOrder () {
    // if Current unit count is maximum, we should not order any more.
    if (CURRENT_UNIT_COUNT >= MAXIMUM_UNIT_COUNT) return;
 
+   // TODO : Need to check total UNIT count.
+   // Strong Related : 6
+   // Loosely related : 10
+   // Single Direction : 12 per dir
+
    // TODO : Let's try with M15 Bar close price.
    double currentPrice = iOpen(Symbol(), PRICE_TIMEFRAME, 0);
 
