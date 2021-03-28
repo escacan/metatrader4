@@ -10,6 +10,7 @@
 
 extern int MAGICNO = 3; 
 //--- input parameters
+input int      MARKET_GROUP = 0; // 0: Forex,  1: Metal,  2: Crypto
 input double   MAX_LOT_SIZE_PER_ORDER = 50.0;
 input double   RISK = 0.01;
 input double   NOTIONAL_BALANCE = 5000;
@@ -19,7 +20,6 @@ input int      MAXIMUM_UNIT_COUNT = 4;
 input double   UNIT_STEP_UP_PORTION = 0.5; 
 input double   STOPLOSS_PORTION = 0.5;
 input ENUM_TIMEFRAMES PRICE_TIMEFRAME = PERIOD_M15;
-input int      MARKET_GROUP = 0; // 0: Forex,  1: Metal,  2: Crypto
 
 //--- Global Var
 ENUM_TIMEFRAMES BASE_TIMEFRAME = PERIOD_D1;
@@ -44,11 +44,21 @@ int OnInit()
 
    Print("Start Turtle Trading");
    PrintFormat("Dollar Per Point : %f", DOLLAR_PER_POINT);
+   while (N_VALUE == 0) N_VALUE = iATR(Symbol(), BASE_TIMEFRAME, 20, 1);
+   PrintFormat("N_VALUE : %f", N_VALUE);
 
    double tradableSize = getUnitSize();
    PrintFormat("You can trade %f on this Item", tradableSize);
 
    setGlobalVar();
+
+   bool res = checkTotalMarketsUnitCount(OP_BUY);
+   if (res) Print("Can BUY More unit!");
+   else Print("Cannot Buy any unit!");
+
+   res = checkTotalMarketsUnitCount(OP_SELL);
+   if (res) Print("Can SELL More unit!");
+   else Print("Cannot SELL any unit!");
 
    return(INIT_SUCCEEDED);
   }
@@ -344,7 +354,7 @@ double getUnitSize() {
 
       double tradableLotSize = 0;
       double dollarVolatility = N_VALUE * DOLLAR_PER_POINT;
-      // PrintFormat("Expected SL Price per 1 Lot : %f", dollarVolatility);
+      
       double maxRiskForAccount = 0;
 
       if (NOTIONAL_BALANCE <= AccountBalance()) {
@@ -383,58 +393,59 @@ double checkPower() {
 
 // Function of setting GlobalVar for Current Item's UNIT Count.
 void setGlobalVar() {
-   if(GlobalVariableSet(Symbol(), CURRENT_UNIT_COUNT) == 0) {
+   string globalVarName = "";
+   if (MARKET_GROUP == 0) globalVarName += "GROUP0_";
+   else if (MARKET_GROUP == 1) globalVarName += "GROUP1_";
+   else if (MARKET_GROUP == 2) globalVarName += "GROUP2_";
+
+   globalVarName += Symbol();
+
+   if(GlobalVariableSet(globalVarName, CURRENT_UNIT_COUNT) == 0) {
       PrintFormat("GlobalVariableSet Failed : ", GetLastError());
    }
 }
 
-// // Function of checking closely related market Unit #.
-// // 0 : Forex      [EURUSD,USDCHF,USDJPY,GBPUSD]
-// // 1 : Metal      [XAGUSD, XAUUSD, XPTUSD]
-// // 2 : Crypto     [BTHUSD, BTCUSD, DSHUSD, ETHUSD, LTCUSD, XRPUSD, EOSUSD]
-// bool checkCloselyRelatedMarketsUnitCount() {
-//    int totalBuyUnitCount = 0;
-//    int totalSellUnitCount = 0;
-
-//    switch(MARKET_GROUP) {
-//       case 0:
-//           = GlobalVariableGet(symbolName);
-//          if (unitCount >= 0) {
-//             totalBuyUnitCount += unitCount;
-//          }
-//          else {
-//             totalSellUnitCount -= unitCount;
-//          }
-//       case 1:
-
-//       case 2:
-//    }
-
-//    return false;
-// }
-
+// Function of counting Total Market's Unit Count
+// Strong Related : 6
+// Loosely related : 10
+// Single Direction : 12 per dir
 bool checkTotalMarketsUnitCount(int cmd) {
    int totalBuyUnitCount = 0;
    int totalSellUnitCount = 0;
    int marketUnitCount[3][2] = {0}; // marketUnitCount[MARKET_GROUP][0: Buy, 1: Sell]
+   string symbolName = "";
+   int unitCount = 0;
+   int symbolMarketGroup = 0;
 
    int totalVarNum = GlobalVariablesTotal();
    for (int i = 0; i< totalVarNum; i++) {
-      string symbolName = GlobalVariableName(i);
-      int unitCount = GlobalVariableGet(symbolName);
-      if (unitCount >= 0) {
-         totalBuyUnitCount += unitCount;
-      }
-      else {
-         totalSellUnitCount -= unitCount;
+      symbolName = GlobalVariableName(i);
+      unitCount = (int)GlobalVariableGet(symbolName);
+
+      if(StringFind(symbolName,"GROUP", 0) != -1) {
+         symbolMarketGroup = symbolName[5] - '0';
+
+         if (unitCount >= 0) {
+            totalBuyUnitCount += unitCount;
+            marketUnitCount[symbolMarketGroup][0] += unitCount;
+         }
+         else {
+            totalSellUnitCount -= unitCount;
+            marketUnitCount[symbolMarketGroup][1] -= unitCount;
+         }
       }
    }
 
+   PrintFormat("Total BUY : %d, SELL : %d", totalBuyUnitCount, totalSellUnitCount);
+   for(int i= 0; i< 3; i++){
+      PrintFormat("For Group %d,  BUY : %d, SELL : %d", i, marketUnitCount[i][0],marketUnitCount[i][1]);
+   }
+
    if (cmd == OP_BUY && totalBuyUnitCount < 12) {
-      return true;
+      if (marketUnitCount[MARKET_GROUP][0] < 6) return true;
    }
    else if (cmd == OP_SELL && totalSellUnitCount < 12) {
-      return true;
+      if (marketUnitCount[MARKET_GROUP][1] < 6) return true;
    }
 
    return false;
