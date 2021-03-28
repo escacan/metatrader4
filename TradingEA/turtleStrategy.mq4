@@ -326,20 +326,28 @@ void canSendOrder () {
 
    if (CURRENT_UNIT_COUNT > 0) {
       if(currentPrice >= TARGET_BUY_PRICE && CURRENT_CMD == OP_BUY) {
+         if (!checkTotalMarketsUnitCount(CURRENT_CMD)) return;
+
          PrintFormat("Send Buy Order On Cur Price : %f, Target Buy Price : %f", currentPrice, TARGET_BUY_PRICE);
          sendOrders(OP_BUY, Ask);
       }
       else if (currentPrice <= TARGET_SELL_PRICE && CURRENT_CMD == OP_SELL) {
+         if (!checkTotalMarketsUnitCount(CURRENT_CMD)) return;
+
          PrintFormat("Send Sell Order On Cur Price : %f, Target Sell Price : %f", currentPrice, TARGET_SELL_PRICE);
          sendOrders(OP_SELL, Bid);
       }
    }
    else {
       if(currentPrice >= TARGET_BUY_PRICE) {
+         if (!checkTotalMarketsUnitCount(OP_BUY)) return;
+
          PrintFormat("Send Buy Order On Cur Price : %f, Target Buy Price : %f", currentPrice, TARGET_BUY_PRICE);
          sendOrders(OP_BUY, Ask);
       }
       else if (currentPrice <= TARGET_SELL_PRICE) {
+         if (!checkTotalMarketsUnitCount(OP_SELL)) return;
+
          sendOrders(OP_SELL, Bid);
          PrintFormat("Send Sell Order On Cur Price : %f, Target Sell Price : %f", currentPrice, TARGET_SELL_PRICE);
       }
@@ -436,10 +444,10 @@ bool checkTotalMarketsUnitCount(int cmd) {
       }
    }
 
-   PrintFormat("Total BUY : %d, SELL : %d", totalBuyUnitCount, totalSellUnitCount);
-   for(int i= 0; i< 3; i++){
-      PrintFormat("For Group %d,  BUY : %d, SELL : %d", i, marketUnitCount[i][0],marketUnitCount[i][1]);
-   }
+   // PrintFormat("Total BUY : %d, SELL : %d", totalBuyUnitCount, totalSellUnitCount);
+   // for(int i= 0; i< 3; i++){
+   //    PrintFormat("For Group %d,  BUY : %d, SELL : %d", i, marketUnitCount[i][0],marketUnitCount[i][1]);
+   // }
 
    if (cmd == OP_BUY && totalBuyUnitCount < 12) {
       if (marketUnitCount[MARKET_GROUP][0] < 6) return true;
