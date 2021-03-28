@@ -19,6 +19,7 @@ input int      MAXIMUM_UNIT_COUNT = 4;
 input double   UNIT_STEP_UP_PORTION = 0.5; 
 input double   STOPLOSS_PORTION = 0.5;
 input ENUM_TIMEFRAMES PRICE_TIMEFRAME = PERIOD_M15;
+input int      MARKET_GROUP = 0; // 0: Forex,  1: Metal,  2: Crypto
 
 //--- Global Var
 ENUM_TIMEFRAMES BASE_TIMEFRAME = PERIOD_D1;
@@ -46,6 +47,8 @@ int OnInit()
 
    double tradableSize = getUnitSize();
    PrintFormat("You can trade %f on this Item", tradableSize);
+
+   setGlobalVar();
 
    return(INIT_SUCCEEDED);
   }
@@ -383,4 +386,57 @@ void setGlobalVar() {
    if(GlobalVariableSet(Symbol(), CURRENT_UNIT_COUNT) == 0) {
       PrintFormat("GlobalVariableSet Failed : ", GetLastError());
    }
+}
+
+// // Function of checking closely related market Unit #.
+// // 0 : Forex      [EURUSD,USDCHF,USDJPY,GBPUSD]
+// // 1 : Metal      [XAGUSD, XAUUSD, XPTUSD]
+// // 2 : Crypto     [BTHUSD, BTCUSD, DSHUSD, ETHUSD, LTCUSD, XRPUSD, EOSUSD]
+// bool checkCloselyRelatedMarketsUnitCount() {
+//    int totalBuyUnitCount = 0;
+//    int totalSellUnitCount = 0;
+
+//    switch(MARKET_GROUP) {
+//       case 0:
+//           = GlobalVariableGet(symbolName);
+//          if (unitCount >= 0) {
+//             totalBuyUnitCount += unitCount;
+//          }
+//          else {
+//             totalSellUnitCount -= unitCount;
+//          }
+//       case 1:
+
+//       case 2:
+//    }
+
+//    return false;
+// }
+
+bool checkTotalMarketsUnitCount(int cmd) {
+   int totalBuyUnitCount = 0;
+   int totalSellUnitCount = 0;
+
+
+
+   int totalVarNum = GlobalVariablesTotal();
+   for (int i = 0; i< totalVarNum; i++) {
+      string symbolName = GlobalVariableName(i);
+      int unitCount = GlobalVariableGet(symbolName);
+      if (unitCount >= 0) {
+         totalBuyUnitCount += unitCount;
+      }
+      else {
+         totalSellUnitCount -= unitCount;
+      }
+   }
+
+   if (cmd == OP_BUY && totalBuyUnitCount < 12) {
+      return true;
+   }
+   else if (cmd == OP_SELL && totalSellUnitCount < 12) {
+      return true;
+   }
+
+   return false;
 }
