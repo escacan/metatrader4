@@ -238,7 +238,8 @@ void closeAllOrders () {
                }
             }
          }
-         else if (currentPrice <= profitBuyPrice) {
+         
+         if (currentPrice <= profitBuyPrice) {
             for (int unitIdx = 0; unitIdx < CURRENT_UNIT_COUNT; unitIdx++) {
                int totalTicketCount = TICKET_ARR[unitIdx][0];
 
@@ -281,7 +282,8 @@ void closeAllOrders () {
                }
             }
          }
-         else if (currentPrice >= profitSellPrice) {
+         
+         if (currentPrice >= profitSellPrice) {
             for (int unitIdx = 0; unitIdx < CURRENT_UNIT_COUNT; unitIdx++) {
                int totalTicketCount = TICKET_ARR[unitIdx][0];
 
@@ -363,14 +365,7 @@ double getUnitSize() {
       double tradableLotSize = 0;
       double dollarVolatility = N_VALUE * DOLLAR_PER_POINT;
       
-      double maxRiskForAccount = 0;
-
-      if (NOTIONAL_BALANCE <= AccountBalance()) {
-         maxRiskForAccount = NOTIONAL_BALANCE * RISK;
-      }
-      else {
-         maxRiskForAccount = AccountBalance() * RISK;
-      }
+      double maxRiskForAccount = NOTIONAL_BALANCE * RISK;
 
       double maxLotBasedOnDollarVolatility = maxRiskForAccount / dollarVolatility;
       
