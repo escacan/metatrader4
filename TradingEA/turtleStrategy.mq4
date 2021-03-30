@@ -39,26 +39,9 @@ double OPENPRICE_ARR[4] = {0};
 int OnInit()
   {
 //---
-   DOLLAR_PER_POINT = MarketInfo(Symbol(), MODE_TICKVALUE) / MarketInfo(Symbol(), MODE_TICKSIZE);
-   N_VALUE = iATR(Symbol(), BREAKOUT_TIMEFRAME, 20, 1);
-
    Print("Start Turtle Trading");
-   PrintFormat("Dollar Per Point : %f", DOLLAR_PER_POINT);
-   while (N_VALUE == 0) N_VALUE = iATR(Symbol(), BREAKOUT_TIMEFRAME, 20, 1);
-   PrintFormat("N_VALUE : %f", N_VALUE);
-
-   double tradableSize = getUnitSize();
-   PrintFormat("You can trade %f on this Item", tradableSize);
 
    setGlobalVar();
-
-   bool res = checkTotalMarketsUnitCount(OP_BUY);
-   if (res) Print("Can BUY More unit!");
-   else Print("Cannot Buy any unit!");
-
-   res = checkTotalMarketsUnitCount(OP_SELL);
-   if (res) Print("Can SELL More unit!");
-   else Print("Cannot SELL any unit!");
 
    return(INIT_SUCCEEDED);
   }
@@ -76,6 +59,19 @@ void OnDeinit(const int reason)
 void OnTick()
   {
 //--- 
+   DOLLAR_PER_POINT = MarketInfo(Symbol(), MODE_TICKVALUE) / MarketInfo(Symbol(), MODE_TICKSIZE);
+   N_VALUE = iATR(Symbol(), BREAKOUT_TIMEFRAME, 20, 1);
+
+   PrintFormat("Dollar Per Point : %f", DOLLAR_PER_POINT);
+
+   while (N_VALUE == 0) N_VALUE = iATR(Symbol(), BREAKOUT_TIMEFRAME, 20, 1);
+   PrintFormat("N_VALUE : %f", N_VALUE);
+
+   double tradableSize = getUnitSize();
+   PrintFormat("You can trade %f on this Item", tradableSize);
+
+   if (tradableSize == 0) return;
+
    Comment(StringFormat("Current Unit Count : %d\nShow prices\nAsk = %G\nBid = %G\nTargetBuy = %f\nTargetSell = %f\nTARGET_STOPLOSS_PRICE = %f\n",CURRENT_UNIT_COUNT,Ask,Bid,TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE));
 
    datetime tempDate = TimeCurrent();
