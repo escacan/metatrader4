@@ -19,10 +19,10 @@ input int      BASE_TERM_FOR_PROFIT = 10;
 input int      MAXIMUM_UNIT_COUNT = 4;
 input double   UNIT_STEP_UP_PORTION = 0.5; 
 input double   STOPLOSS_PORTION = 0.5;
+input ENUM_TIMEFRAMES BREAKOUT_TIMEFRAME = PERIOD_D1;
 input ENUM_TIMEFRAMES PRICE_TIMEFRAME = PERIOD_M15;
 
 //--- Global Var
-ENUM_TIMEFRAMES BASE_TIMEFRAME = PERIOD_D1;
 double TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE;
 int CURRENT_UNIT_COUNT = 0;
 int CURRENT_CMD = OP_BUY; // 0 : Buy  1 : Sell
@@ -40,11 +40,11 @@ int OnInit()
   {
 //---
    DOLLAR_PER_POINT = MarketInfo(Symbol(), MODE_TICKVALUE) / MarketInfo(Symbol(), MODE_TICKSIZE);
-   N_VALUE = iATR(Symbol(), BASE_TIMEFRAME, 20, 1);
+   N_VALUE = iATR(Symbol(), BREAKOUT_TIMEFRAME, 20, 1);
 
    Print("Start Turtle Trading");
    PrintFormat("Dollar Per Point : %f", DOLLAR_PER_POINT);
-   while (N_VALUE == 0) N_VALUE = iATR(Symbol(), BASE_TIMEFRAME, 20, 1);
+   while (N_VALUE == 0) N_VALUE = iATR(Symbol(), BREAKOUT_TIMEFRAME, 20, 1);
    PrintFormat("N_VALUE : %f", N_VALUE);
 
    double tradableSize = getUnitSize();
@@ -94,7 +94,7 @@ void OnTick()
 
 // Function which update Items we need to update Weekly
 void updateWeekly() {
-   N_VALUE = iATR(Symbol(), BASE_TIMEFRAME, 20, 1);
+   N_VALUE = iATR(Symbol(), BREAKOUT_TIMEFRAME, 20, 1);
 }
 
 // Function which update Target Price based on latest order's CMD and OpenPrice.
@@ -120,13 +120,13 @@ void updateTargetPrice() {
       }
    }
    else if (CURRENT_UNIT_COUNT == 0) {
-      int highBarIndex = iHighest(Symbol(), BASE_TIMEFRAME, MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
+      int highBarIndex = iHighest(Symbol(), BREAKOUT_TIMEFRAME, MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
       if (highBarIndex == -1) TARGET_BUY_PRICE = 99999999999999;
-      else TARGET_BUY_PRICE = iHigh(Symbol(), BASE_TIMEFRAME, highBarIndex);
+      else TARGET_BUY_PRICE = iHigh(Symbol(), BREAKOUT_TIMEFRAME, highBarIndex);
 
-      int lowBarIndex = iLowest(Symbol(), BASE_TIMEFRAME, MODE_LOW, BASE_TERM_FOR_BREAKOUT, 1);
+      int lowBarIndex = iLowest(Symbol(), BREAKOUT_TIMEFRAME, MODE_LOW, BASE_TERM_FOR_BREAKOUT, 1);
       if (lowBarIndex == -1) TARGET_SELL_PRICE = -9999999999;
-      else TARGET_SELL_PRICE = iLow(Symbol(), BASE_TIMEFRAME, lowBarIndex);
+      else TARGET_SELL_PRICE = iLow(Symbol(), BREAKOUT_TIMEFRAME, lowBarIndex);
    }
 }
 
@@ -210,13 +210,13 @@ void closeAllOrders () {
       double profitBuyPrice = 0;
       double profitSellPrice = 0;
 
-      int highBarIndex = iHighest(Symbol(), BASE_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_PROFIT, 1);
+      int highBarIndex = iHighest(Symbol(), BREAKOUT_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_PROFIT, 1);
       if (highBarIndex == -1) profitSellPrice = 99999999999999;
-      else profitSellPrice = iHigh(Symbol(), BASE_TIMEFRAME, highBarIndex);
+      else profitSellPrice = iHigh(Symbol(), BREAKOUT_TIMEFRAME, highBarIndex);
 
-      int lowBarIndex = iLowest(Symbol(), BASE_TIMEFRAME,MODE_LOW, BASE_TERM_FOR_PROFIT, 1);
+      int lowBarIndex = iLowest(Symbol(), BREAKOUT_TIMEFRAME,MODE_LOW, BASE_TERM_FOR_PROFIT, 1);
       if (lowBarIndex == -1) profitBuyPrice = -9999999999;
-      else profitBuyPrice = iLow(Symbol(), BASE_TIMEFRAME, lowBarIndex);
+      else profitBuyPrice = iLow(Symbol(), BREAKOUT_TIMEFRAME, lowBarIndex);
 
       if (CURRENT_CMD == OP_BUY) {
          if (currentPrice <= TARGET_STOPLOSS_PRICE) {
