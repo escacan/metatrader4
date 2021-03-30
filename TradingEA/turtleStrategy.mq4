@@ -81,6 +81,7 @@ void OnTick()
 
    // Daily Update
    if (strDate.day != currentDate) {
+      currentDate = strDate.day;
       updateWeekly();
    }
 
