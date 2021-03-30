@@ -59,13 +59,13 @@ void OnDeinit(const int reason)
 void OnTick()
   {
 //--- 
-   DOLLAR_PER_POINT = MarketInfo(Symbol(), MODE_TICKVALUE) / MarketInfo(Symbol(), MODE_TICKSIZE);
-   N_VALUE = iATR(Symbol(), BREAKOUT_TIMEFRAME, 20, 1);
+   // Daily Update
+   if (strDate.day != currentDate) {
+      currentDate = strDate.day;
 
-   PrintFormat("Dollar Per Point : %f", DOLLAR_PER_POINT);
-
-   while (N_VALUE == 0) N_VALUE = iATR(Symbol(), BREAKOUT_TIMEFRAME, 20, 1);
-   PrintFormat("N_VALUE : %f", N_VALUE);
+      DOLLAR_PER_POINT = MarketInfo(Symbol(), MODE_TICKVALUE) / MarketInfo(Symbol(), MODE_TICKSIZE);
+      N_VALUE = iATR(Symbol(), BREAKOUT_TIMEFRAME, 20, 1);
+   }
 
    double tradableSize = getUnitSize();
    PrintFormat("You can trade %f on this Item", tradableSize);
@@ -79,20 +79,9 @@ void OnTick()
    MqlDateTime strDate;
    TimeToStruct(tempDate, strDate);
 
-   // Daily Update
-   if (strDate.day != currentDate) {
-      currentDate = strDate.day;
-      updateWeekly();
-   }
-
    if (CURRENT_UNIT_COUNT == 0) updateTargetPrice();
    canSendOrder();
   }
-
-// Function which update Items we need to update Weekly
-void updateWeekly() {
-   N_VALUE = iATR(Symbol(), BREAKOUT_TIMEFRAME, 20, 1);
-}
 
 // Function which update Target Price based on latest order's CMD and OpenPrice.
 void updateTargetPrice() {
