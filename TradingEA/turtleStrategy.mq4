@@ -34,6 +34,7 @@ bool backupFinished = false;
 
 int TICKET_ARR[6][200] = {0};
 double OPENPRICE_ARR[6] = {0};
+bool firstTick = true;
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -92,9 +93,10 @@ void OnTick()
    Comment(StringFormat("Current Unit Count : %d\nShow prices\nAsk = %G\nBid = %G\nTargetBuy = %f\nTargetSell = %f\nTARGET_STOPLOSS_PRICE = %f\n",CURRENT_UNIT_COUNT,Ask,Bid,TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE));
 
    // TODO : Call every tick when unit count is 0. This is issue
-   if (CURRENT_UNIT_COUNT == 0 || backupFinished) { 
+   if (firstTick || backupFinished) { 
       updateTargetPrice();
       backupFinished = false;
+      firstTick = false;
    }
    canSendOrder();
   }
