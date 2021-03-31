@@ -70,11 +70,16 @@ void OnTick()
    TimeToStruct(tempDate, strDate);
 
    // Daily Update
-   if (strDate.day != currentDate) {
+   if (strDate.day != currentDate || DOLLAR_PER_POINT == 0 || N_VALUE == 0) {
       currentDate = strDate.day;
 
       DOLLAR_PER_POINT = MarketInfo(Symbol(), MODE_TICKVALUE) / MarketInfo(Symbol(), MODE_TICKSIZE);
       N_VALUE = iATR(Symbol(), BREAKOUT_TIMEFRAME, 20, 1);
+   }
+
+   if (DOLLAR_PER_POINT == 0 || N_VALUE == 0) {
+      PrintFormat("Not initialized well. Dollar point : %f, N_VALUE : %f", DOLLAR_PER_POINT, N_VALUE);
+      return;
    }
 
    double tradableSize = getUnitSize();
