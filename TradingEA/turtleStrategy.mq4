@@ -48,8 +48,6 @@ int OnInit()
 
    if (LOAD_BACKUP) readBakcupFile();
 
-   setGlobalVar();
-
    return(INIT_SUCCEEDED);
   }
 //+------------------------------------------------------------------+
@@ -102,6 +100,7 @@ void OnTick()
       firstTick = false;
    }
    canSendOrder();
+   setGlobalVar();
   }
 
 // Function which update Target Price based on latest order's CMD and OpenPrice.
