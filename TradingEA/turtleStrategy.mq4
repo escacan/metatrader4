@@ -10,17 +10,17 @@
 
 extern int MAGICNO = 3; 
 //--- input parameters
-input int      MARKET_GROUP = 0; // 0: Forex,  1: Metal,  2: Crypto
+input int      MARKET_GROUP = 0; // 0: Forex,  1: Metal,  2: Crypto  3: Energy
 input double   MAX_LOT_SIZE_PER_ORDER = 50.0;
 input double   RISK = 0.01;
-input double   NOTIONAL_BALANCE = 5000;
+input double   NOTIONAL_BALANCE = 4000;
 input int      BASE_TERM_FOR_BREAKOUT = 55;
 input int      BASE_TERM_FOR_PROFIT = 10;
 input int      MAXIMUM_UNIT_COUNT = 4;
 input double   UNIT_STEP_UP_PORTION = 0.5; 
 input double   STOPLOSS_PORTION = 0.5;
 input ENUM_TIMEFRAMES BREAKOUT_TIMEFRAME = PERIOD_D1;
-input ENUM_TIMEFRAMES PRICE_TIMEFRAME = PERIOD_M15;
+input ENUM_TIMEFRAMES PRICE_TIMEFRAME = PERIOD_M1;
 input bool     LOAD_BACKUP = false;
 
 //--- Global Var
@@ -32,8 +32,8 @@ double DOLLAR_PER_POINT = 0;
 int currentDate = 0;
 bool backupFinished = false;
 
-int TICKET_ARR[4][200] = {0};
-double OPENPRICE_ARR[4] = {0};
+int TICKET_ARR[6][200] = {0};
+double OPENPRICE_ARR[6] = {0};
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
