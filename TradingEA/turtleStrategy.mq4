@@ -92,7 +92,6 @@ void OnTick()
 
    Comment(StringFormat("Current Unit Count : %d\nShow prices\nAsk = %G\nBid = %G\nTargetBuy = %f\nTargetSell = %f\nTARGET_STOPLOSS_PRICE = %f\n",CURRENT_UNIT_COUNT,Ask,Bid,TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE));
 
-   // TODO : Call every tick when unit count is 0. This is issue
    if (firstTick || backupFinished) { 
       updateTargetPrice();
       backupFinished = false;
@@ -329,7 +328,6 @@ void canSendOrder () {
    // Loosely related : 10
    // Single Direction : 12 per dir
 
-   // TODO : Let's try with M15 Bar close price.
    double currentPrice = iOpen(Symbol(), PRICE_TIMEFRAME, 0);
 
    if (CURRENT_UNIT_COUNT > 0) {
