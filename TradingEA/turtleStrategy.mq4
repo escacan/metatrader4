@@ -67,6 +67,8 @@ void OnDeinit(const int reason)
 void OnTick()
   {
 //--- 
+   Comment(StringFormat("Dollar per point : %f\nN Value : %f\nCurrent Unit Count : %d\nShow prices\nAsk = %G\nBid = %G\nTargetBuy = %f\nTargetSell = %f\nTARGET_STOPLOSS_PRICE = %f\n", DOLLAR_PER_POINT, N_VALUE, CURRENT_UNIT_COUNT,Ask,Bid,TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE));
+
    datetime tempDate = TimeCurrent();
    int currentTime = TimeSeconds(tempDate);
    MqlDateTime strDate;
@@ -92,7 +94,7 @@ void OnTick()
 
    if (tradableSize == 0) return;
 
-   Comment(StringFormat("Current Unit Count : %d\nShow prices\nAsk = %G\nBid = %G\nTargetBuy = %f\nTargetSell = %f\nTARGET_STOPLOSS_PRICE = %f\n",CURRENT_UNIT_COUNT,Ask,Bid,TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE));
+   Comment(StringFormat("Dollar per point : %f\nN Value : %f\nCurrent Unit Count : %d\nShow prices\nAsk = %G\nBid = %G\nTargetBuy = %f\nTargetSell = %f\nTARGET_STOPLOSS_PRICE = %f\n", DOLLAR_PER_POINT, N_VALUE, CURRENT_UNIT_COUNT,Ask,Bid,TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE));
 
    if (firstTick || backupFinished) { 
       updateTargetPrice();
@@ -134,7 +136,13 @@ void updateTargetPrice() {
       else TARGET_SELL_PRICE = iLow(SYMBOL, BREAKOUT_TIMEFRAME, lowBarIndex);
    }
 
-   backupOrderInfo();
+   if (TARGET_BUY_PRICE == 0 || TARGET_SELL_PRICE == 0) {
+      Alert("updateTargetPrice :: Failed to get target Price");
+      updateTargetPrice();
+   }
+   else {
+      backupOrderInfo();
+   }
 }
 
 // Function of Sending Order. When Order made, update Unit count and target price.
@@ -214,6 +222,11 @@ void closeAllOrders () {
    // Check STOP LOSS
    if (CURRENT_UNIT_COUNT > 0) {
       double currentPrice = iOpen(SYMBOL, PRICE_TIMEFRAME, 0);
+      if (currentPrice == 0) {
+         Alert("closeAllOrders :: Fail iOpen Current Price");
+         return;
+      }
+
       double profitBuyPrice = 0;
       double profitSellPrice = 0;
 
@@ -221,9 +234,20 @@ void closeAllOrders () {
       if (highBarIndex == -1) profitSellPrice = 99999999999999;
       else profitSellPrice = iHigh(SYMBOL, BREAKOUT_TIMEFRAME, highBarIndex);
 
+      if (profitSellPrice == 0) {
+         Alert("closeAllOrders :: iHigh failed");
+         return;
+      }
+
+
       int lowBarIndex = iLowest(SYMBOL, BREAKOUT_TIMEFRAME,MODE_LOW, BASE_TERM_FOR_PROFIT, 1);
       if (lowBarIndex == -1) profitBuyPrice = -9999999999;
       else profitBuyPrice = iLow(SYMBOL, BREAKOUT_TIMEFRAME, lowBarIndex);
+
+      if (profitBuyPrice == 0) {
+         Alert("closeAllOrders :: iLos failed");
+         return;
+      }
 
       if (CURRENT_CMD == OP_BUY) {
          if (currentPrice <= TARGET_STOPLOSS_PRICE) {
@@ -331,6 +355,10 @@ void canSendOrder () {
    // Single Direction : 12 per dir
 
    double currentPrice = iOpen(SYMBOL, PRICE_TIMEFRAME, 0);
+   if (currentPrice == 0) {
+      Alert("canSendOrder :: Fail iOpen Current Price");
+      return;
+   }
 
    if (CURRENT_UNIT_COUNT > 0) {
       if(currentPrice >= TARGET_BUY_PRICE && CURRENT_CMD == OP_BUY) {
