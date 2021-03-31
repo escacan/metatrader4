@@ -35,6 +35,7 @@ bool backupFinished = false;
 int TICKET_ARR[6][200] = {0};
 double OPENPRICE_ARR[6] = {0};
 bool firstTick = true;
+string SYMBOL = "";
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -43,6 +44,7 @@ int OnInit()
   {
 //---
    Print("Start Turtle Trading");
+   SYMBOL = SYMBOL;
 
    if (LOAD_BACKUP) readBakcupFile();
 
@@ -77,8 +79,8 @@ void OnTick()
       // TODO : When failed to update Dollar per point, how to handle the issue?
       // Especially on Forex items.
       // When N_VALUE is zero, order is sent immediately. Should be fixed!!
-      DOLLAR_PER_POINT = MarketInfo(Symbol(), MODE_TICKVALUE) / MarketInfo(Symbol(), MODE_TICKSIZE);
-      N_VALUE = iATR(Symbol(), BREAKOUT_TIMEFRAME, 20, 1);
+      DOLLAR_PER_POINT = MarketInfo(SYMBOL, MODE_TICKVALUE) / MarketInfo(SYMBOL, MODE_TICKSIZE);
+      N_VALUE = iATR(SYMBOL, BREAKOUT_TIMEFRAME, 20, 1);
    }
 
    if (fabs(DOLLAR_PER_POINT) <= 0.0001 || fabs(N_VALUE) <= 0.0001) {
@@ -123,13 +125,13 @@ void updateTargetPrice() {
       }
    }
    else if (CURRENT_UNIT_COUNT == 0) {
-      int highBarIndex = iHighest(Symbol(), BREAKOUT_TIMEFRAME, MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
+      int highBarIndex = iHighest(SYMBOL, BREAKOUT_TIMEFRAME, MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
       if (highBarIndex == -1) TARGET_BUY_PRICE = 99999999999999;
-      else TARGET_BUY_PRICE = iHigh(Symbol(), BREAKOUT_TIMEFRAME, highBarIndex);
+      else TARGET_BUY_PRICE = iHigh(SYMBOL, BREAKOUT_TIMEFRAME, highBarIndex);
 
-      int lowBarIndex = iLowest(Symbol(), BREAKOUT_TIMEFRAME, MODE_LOW, BASE_TERM_FOR_BREAKOUT, 1);
+      int lowBarIndex = iLowest(SYMBOL, BREAKOUT_TIMEFRAME, MODE_LOW, BASE_TERM_FOR_BREAKOUT, 1);
       if (lowBarIndex == -1) TARGET_SELL_PRICE = -9999999999;
-      else TARGET_SELL_PRICE = iLow(Symbol(), BREAKOUT_TIMEFRAME, lowBarIndex);
+      else TARGET_SELL_PRICE = iLow(SYMBOL, BREAKOUT_TIMEFRAME, lowBarIndex);
    }
 
    backupOrderInfo();
@@ -159,11 +161,11 @@ void sendOrders(int cmd, double price) {
       if (lotSize >= MAX_LOT_SIZE_PER_ORDER) {
          lotSize -= MAX_LOT_SIZE_PER_ORDER;
          PrintFormat("Order Lot Size : %f", MAX_LOT_SIZE_PER_ORDER);
-         ticketNum = OrderSend(Symbol(), cmd, MAX_LOT_SIZE_PER_ORDER, price, 3, 0, 0, comment, MAGICNO, 0, clrBlue);
+         ticketNum = OrderSend(SYMBOL, cmd, MAX_LOT_SIZE_PER_ORDER, price, 3, 0, 0, comment, MAGICNO, 0, clrBlue);
       }
       else {
          PrintFormat("Order Lot Size : %f", lotSize);
-         ticketNum = OrderSend(Symbol(), cmd, lotSize, price, 3, 0, 0, comment, MAGICNO, 0, clrBlue);
+         ticketNum = OrderSend(SYMBOL, cmd, lotSize, price, 3, 0, 0, comment, MAGICNO, 0, clrBlue);
          lotSize = 0;
       }
 
@@ -211,17 +213,17 @@ void closeAllOrders () {
 
    // Check STOP LOSS
    if (CURRENT_UNIT_COUNT > 0) {
-      double currentPrice = iOpen(Symbol(), PRICE_TIMEFRAME, 0);
+      double currentPrice = iOpen(SYMBOL, PRICE_TIMEFRAME, 0);
       double profitBuyPrice = 0;
       double profitSellPrice = 0;
 
-      int highBarIndex = iHighest(Symbol(), BREAKOUT_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_PROFIT, 1);
+      int highBarIndex = iHighest(SYMBOL, BREAKOUT_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_PROFIT, 1);
       if (highBarIndex == -1) profitSellPrice = 99999999999999;
-      else profitSellPrice = iHigh(Symbol(), BREAKOUT_TIMEFRAME, highBarIndex);
+      else profitSellPrice = iHigh(SYMBOL, BREAKOUT_TIMEFRAME, highBarIndex);
 
-      int lowBarIndex = iLowest(Symbol(), BREAKOUT_TIMEFRAME,MODE_LOW, BASE_TERM_FOR_PROFIT, 1);
+      int lowBarIndex = iLowest(SYMBOL, BREAKOUT_TIMEFRAME,MODE_LOW, BASE_TERM_FOR_PROFIT, 1);
       if (lowBarIndex == -1) profitBuyPrice = -9999999999;
-      else profitBuyPrice = iLow(Symbol(), BREAKOUT_TIMEFRAME, lowBarIndex);
+      else profitBuyPrice = iLow(SYMBOL, BREAKOUT_TIMEFRAME, lowBarIndex);
 
       if (CURRENT_CMD == OP_BUY) {
          if (currentPrice <= TARGET_STOPLOSS_PRICE) {
@@ -328,7 +330,7 @@ void canSendOrder () {
    // Loosely related : 10
    // Single Direction : 12 per dir
 
-   double currentPrice = iOpen(Symbol(), PRICE_TIMEFRAME, 0);
+   double currentPrice = iOpen(SYMBOL, PRICE_TIMEFRAME, 0);
 
    if (CURRENT_UNIT_COUNT > 0) {
       if(currentPrice >= TARGET_BUY_PRICE && CURRENT_CMD == OP_BUY) {
@@ -373,7 +375,7 @@ double getUnitSize() {
 
       double maxLotBasedOnDollarVolatility = maxRiskForAccount / dollarVolatility;
       
-      double tradableMinLotSize = MarketInfo(Symbol(), MODE_MINLOT);
+      double tradableMinLotSize = MarketInfo(SYMBOL, MODE_MINLOT);
       double requiredMinBalance = tradableMinLotSize * dollarVolatility / RISK;
       
       if (maxLotBasedOnDollarVolatility >= tradableMinLotSize) {
@@ -391,8 +393,8 @@ double getUnitSize() {
 // Check price movement during the 3 months
 double checkPower() {
    // Current Price - Price Prior to 3 months  /  N  
-   double currentPrice = iOpen(Symbol(), PERIOD_D1, 0);
-   double prevPrice = iOpen(Symbol(), PERIOD_D1, 90);
+   double currentPrice = iOpen(SYMBOL, PERIOD_D1, 0);
+   double prevPrice = iOpen(SYMBOL, PERIOD_D1, 90);
 
    double result = (currentPrice - prevPrice) / N_VALUE;
    return result;
@@ -400,7 +402,7 @@ double checkPower() {
 
 // Function of setting GlobalVar for Current Item's UNIT Count.
 void setGlobalVar() {
-   string globalVarName = "GROUP" + IntegerToString(MARKET_GROUP) + "_" + Symbol();
+   string globalVarName = "GROUP" + IntegerToString(MARKET_GROUP) + "_" + SYMBOL;
 
    if(GlobalVariableSet(globalVarName, CURRENT_UNIT_COUNT) == 0) {
       PrintFormat("GlobalVariableSet Failed : ", GetLastError());
@@ -455,7 +457,7 @@ bool checkTotalMarketsUnitCount(int cmd) {
 
 // Function of write Backup file.
 void backupOrderInfo() {
-   string backupFile =Symbol() + ".txt";
+   string backupFile =SYMBOL + ".txt";
 
    int filehandle=FileOpen(backupFile,FILE_WRITE|FILE_TXT);
    if(filehandle!=INVALID_HANDLE) {
@@ -481,7 +483,7 @@ void backupOrderInfo() {
 }
 
 void readBakcupFile() {
-   string backupFile = Symbol() + ".txt";
+   string backupFile = SYMBOL + ".txt";
    int    str_size = 0;
    string str = "";
    int totalTicketCount = 0;
