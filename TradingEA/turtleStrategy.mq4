@@ -70,7 +70,7 @@ void OnTick()
    TimeToStruct(tempDate, strDate);
 
    // Daily Update
-   if (strDate.day != currentDate || DOLLAR_PER_POINT == 0 || N_VALUE == 0) {
+   if (strDate.day != currentDate || fabs(DOLLAR_PER_POINT) <= 0.0001 || fabs(N_VALUE) <= 0.0001 ) {
       currentDate = strDate.day;
       
       // TODO : When failed to update Dollar per point, how to handle the issue?
@@ -80,7 +80,7 @@ void OnTick()
       N_VALUE = iATR(Symbol(), BREAKOUT_TIMEFRAME, 20, 1);
    }
 
-   if (DOLLAR_PER_POINT == 0 || N_VALUE == 0) {
+   if (fabs(DOLLAR_PER_POINT) <= 0.0001 || fabs(N_VALUE) <= 0.0001) {
       PrintFormat("Not initialized well. Dollar point : %f, N_VALUE : %f", DOLLAR_PER_POINT, N_VALUE);
       return;
    }
@@ -91,6 +91,7 @@ void OnTick()
 
    Comment(StringFormat("Current Unit Count : %d\nShow prices\nAsk = %G\nBid = %G\nTargetBuy = %f\nTargetSell = %f\nTARGET_STOPLOSS_PRICE = %f\n",CURRENT_UNIT_COUNT,Ask,Bid,TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE));
 
+   // TODO : Call every tick when unit count is 0. This is issue
    if (CURRENT_UNIT_COUNT == 0 || backupFinished) { 
       updateTargetPrice();
       backupFinished = false;
