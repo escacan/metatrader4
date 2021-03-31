@@ -405,7 +405,7 @@ void setGlobalVar() {
 bool checkTotalMarketsUnitCount(int cmd) {
    int totalBuyUnitCount = 0;
    int totalSellUnitCount = 0;
-   int marketUnitCount[3][2] = {0}; // marketUnitCount[MARKET_GROUP][0: Buy, 1: Sell]
+   int marketUnitCount[10][2] = {0}; // marketUnitCount[MARKET_GROUP][0: Buy, 1: Sell]
    string symbolName = "";
    int unitCount = 0;
    int symbolMarketGroup = 0;
