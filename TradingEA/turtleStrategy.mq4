@@ -391,12 +391,7 @@ double checkPower() {
 
 // Function of setting GlobalVar for Current Item's UNIT Count.
 void setGlobalVar() {
-   string globalVarName = "";
-   if (MARKET_GROUP == 0) globalVarName += "GROUP0_";
-   else if (MARKET_GROUP == 1) globalVarName += "GROUP1_";
-   else if (MARKET_GROUP == 2) globalVarName += "GROUP2_";
-
-   globalVarName += Symbol();
+   string globalVarName = "GROUP" + IntegerToString(MARKET_GROUP) + "_" + Symbol();
 
    if(GlobalVariableSet(globalVarName, CURRENT_UNIT_COUNT) == 0) {
       PrintFormat("GlobalVariableSet Failed : ", GetLastError());
