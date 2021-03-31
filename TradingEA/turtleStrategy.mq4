@@ -72,7 +72,10 @@ void OnTick()
    // Daily Update
    if (strDate.day != currentDate || DOLLAR_PER_POINT == 0 || N_VALUE == 0) {
       currentDate = strDate.day;
-
+      
+      // TODO : When failed to update Dollar per point, how to handle the issue?
+      // Especially on Forex items.
+      // When N_VALUE is zero, order is sent immediately. Should be fixed!!
       DOLLAR_PER_POINT = MarketInfo(Symbol(), MODE_TICKVALUE) / MarketInfo(Symbol(), MODE_TICKSIZE);
       N_VALUE = iATR(Symbol(), BREAKOUT_TIMEFRAME, 20, 1);
    }
