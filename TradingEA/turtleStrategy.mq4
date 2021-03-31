@@ -21,6 +21,7 @@ input double   UNIT_STEP_UP_PORTION = 0.5;
 input double   STOPLOSS_PORTION = 0.5;
 input ENUM_TIMEFRAMES BREAKOUT_TIMEFRAME = PERIOD_D1;
 input ENUM_TIMEFRAMES PRICE_TIMEFRAME = PERIOD_M15;
+input bool     LOAD_BACKUP = false;
 
 //--- Global Var
 double TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE;
@@ -29,6 +30,7 @@ int CURRENT_CMD = OP_BUY; // 0 : Buy  1 : Sell
 double N_VALUE = 0; // Need to Update Weekly
 double DOLLAR_PER_POINT = 0;
 int currentDate = 0;
+bool backupFinished = false;
 
 int TICKET_ARR[4][200] = {0};
 double OPENPRICE_ARR[4] = {0};
@@ -41,6 +43,8 @@ int OnInit()
 //---
    Print("Start Turtle Trading");
 
+   if (LOAD_BACKUP) readBakcupFile();
+
    setGlobalVar();
 
    return(INIT_SUCCEEDED);
@@ -51,6 +55,7 @@ int OnInit()
 void OnDeinit(const int reason)
   {
    PrintFormat("Close Strategy with reason : %s", reason);
+
    return;
   }
 //+------------------------------------------------------------------+
@@ -59,6 +64,11 @@ void OnDeinit(const int reason)
 void OnTick()
   {
 //--- 
+   datetime tempDate = TimeCurrent();
+   int currentTime = TimeSeconds(tempDate);
+   MqlDateTime strDate;
+   TimeToStruct(tempDate, strDate);
+
    // Daily Update
    if (strDate.day != currentDate) {
       currentDate = strDate.day;
@@ -68,18 +78,15 @@ void OnTick()
    }
 
    double tradableSize = getUnitSize();
-   PrintFormat("You can trade %f on this Item", tradableSize);
 
    if (tradableSize == 0) return;
 
    Comment(StringFormat("Current Unit Count : %d\nShow prices\nAsk = %G\nBid = %G\nTargetBuy = %f\nTargetSell = %f\nTARGET_STOPLOSS_PRICE = %f\n",CURRENT_UNIT_COUNT,Ask,Bid,TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE));
 
-   datetime tempDate = TimeCurrent();
-   int currentTime = TimeSeconds(tempDate);
-   MqlDateTime strDate;
-   TimeToStruct(tempDate, strDate);
-
-   if (CURRENT_UNIT_COUNT == 0) updateTargetPrice();
+   if (CURRENT_UNIT_COUNT == 0 || backupFinished) { 
+      updateTargetPrice();
+      backupFinished = false;
+   }
    canSendOrder();
   }
 
@@ -114,6 +121,8 @@ void updateTargetPrice() {
       if (lowBarIndex == -1) TARGET_SELL_PRICE = -9999999999;
       else TARGET_SELL_PRICE = iLow(Symbol(), BREAKOUT_TIMEFRAME, lowBarIndex);
    }
+
+   backupOrderInfo();
 }
 
 // Function of Sending Order. When Order made, update Unit count and target price.
@@ -438,4 +447,84 @@ bool checkTotalMarketsUnitCount(int cmd) {
    }
 
    return false;
+}
+
+// Function of write Backup file.
+void backupOrderInfo() {
+   string backupFile =Symbol() + ".txt";
+
+   int filehandle=FileOpen(backupFile,FILE_WRITE|FILE_TXT);
+   if(filehandle!=INVALID_HANDLE) {
+      PrintFormat("File Write : %s", backupFile);
+
+      FileWrite(filehandle,CURRENT_CMD);
+      FileWrite(filehandle,CURRENT_UNIT_COUNT);
+
+      if (CURRENT_UNIT_COUNT > 0) {
+         for (int unitIdx= 0; unitIdx< CURRENT_UNIT_COUNT; unitIdx++) {
+            int totalTicketCount = TICKET_ARR[unitIdx][0];
+            FileWrite(filehandle,totalTicketCount);
+            for (int ticketIdx = 1; ticketIdx <= totalTicketCount; ticketIdx++) {
+               int ticketNum = TICKET_ARR[unitIdx][ticketIdx];
+               FileWrite(filehandle,ticketNum);
+            }
+         }
+      }
+
+      FileClose(filehandle);
+     }
+   else Print("Operation FileOpen failed, error ",GetLastError());
+}
+
+void readBakcupFile() {
+   string backupFile = Symbol() + ".txt";
+   int    str_size = 0;
+   string str = "";
+   int totalTicketCount = 0;
+   int ticketNum = 0;
+
+   PrintFormat("Read File :: %s", backupFile);
+   
+   int filehandle = FileOpen(backupFile,FILE_READ|FILE_TXT);
+   if(filehandle != INVALID_HANDLE)
+   {
+      PrintFormat("Read File :: %s", backupFile);
+
+      str_size=FileReadInteger(filehandle,INT_VALUE);
+      str=FileReadString(filehandle,str_size);
+      CURRENT_CMD = StrToInteger(str);
+
+      str_size=FileReadInteger(filehandle,INT_VALUE);
+      str=FileReadString(filehandle,str_size);
+      CURRENT_UNIT_COUNT = StrToInteger(str);
+
+      for (int unitIdx= 0; unitIdx< CURRENT_UNIT_COUNT; unitIdx++) {
+         str_size=FileReadInteger(filehandle,INT_VALUE);
+         str=FileReadString(filehandle,str_size);
+         totalTicketCount = StrToInteger(str);
+
+         for (int ticketIdx = 1; ticketIdx <= totalTicketCount; ticketIdx++) {
+            str_size=FileReadInteger(filehandle,INT_VALUE);
+            str=FileReadString(filehandle,str_size);
+            TICKET_ARR[unitIdx][ticketIdx] = StrToInteger(str);
+         }
+
+         ticketNum = TICKET_ARR[unitIdx][totalTicketCount];
+         if (OrderSelect(ticketNum, SELECT_BY_TICKET, MODE_TRADES)) {
+            OPENPRICE_ARR[unitIdx] = OrderOpenPrice();
+         }
+         else {
+            Alert("Fail OrderSelect : Order ID = ", ticketNum);
+            OPENPRICE_ARR[unitIdx] = 0;
+         }
+      }
+
+      FileClose(filehandle);
+
+      backupFinished = true;
+   }
+   else
+   {
+      PrintFormat("File "+backupFile+" not found, the last error is ", GetLastError());
+   }  
 }
