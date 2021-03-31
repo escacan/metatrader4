@@ -44,7 +44,7 @@ int OnInit()
   {
 //---
    Print("Start Turtle Trading");
-   SYMBOL = SYMBOL;
+   SYMBOL = Symbol();
 
    if (LOAD_BACKUP) readBakcupFile();
 
