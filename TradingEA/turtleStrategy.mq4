@@ -142,7 +142,7 @@ void updateTargetPrice() {
       else TARGET_SELL_PRICE = iLow(SYMBOL, BREAKOUT_TIMEFRAME, lowBarIndex);
    }
 
-   if (TARGET_BUY_PRICE == 0 || TARGET_SELL_PRICE == 0) {
+   if (fabs(TARGET_BUY_PRICE) <= 0.0001 || fabs(TARGET_SELL_PRICE) <= 0.0001) {
       Print("updateTargetPrice :: Failed to get target Price");
       updateTargetPrice();
    }
@@ -485,7 +485,7 @@ void backupOrderInfo() {
 
    int filehandle=FileOpen(backupFile,FILE_WRITE|FILE_TXT);
    if(filehandle!=INVALID_HANDLE) {
-      PrintFormat("File Write : %s", backupFile);
+      // PrintFormat("File Write : %s", backupFile);
 
       FileWrite(filehandle,CURRENT_CMD);
       FileWrite(filehandle,CURRENT_UNIT_COUNT);
@@ -557,4 +557,4 @@ void readBakcupFile() {
    {
       PrintFormat("File "+backupFile+" not found, the last error is ", GetLastError());
    }  
-}
+}  
