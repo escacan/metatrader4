@@ -11,7 +11,7 @@
 #define isZero(x) (fabs(x) < 0.000000001)
 #define isEqual(x,y) (fabs(x-y) < 0.000000001)
 #define isBigger(x,y) (x-y >= 0.000000001)
-#define isSmaller(x,y) (x-y <= 0.000000001)
+#define isSmaller(x,y) (x-y <= -0.000000001)
 
 extern int MAGICNO = 3; 
 //--- input parameters
