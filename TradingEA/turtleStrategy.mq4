@@ -8,6 +8,11 @@
 #property version   "1.00"
 #property strict
 
+#define isZero(x) (fabs(x) < 0.000000001)
+#define isEqual(x,y) (fabs(x-y) < 0.000000001)
+#define isBigger(x,y) (fabs(x-y) >= 0.000000001)
+#define isSmaller(x,y) (fabs(x-y) <= 0.000000001)
+
 extern int MAGICNO = 3; 
 //--- input parameters
 input int      MARKET_GROUP = 0; // 0: Forex,  1: Metal,  2: Crypto  3: Energy
@@ -80,7 +85,7 @@ void OnTick()
    TimeToStruct(tempDate, strDate);
 
    // Daily Update
-   if (strDate.day != currentDate || fabs(DOLLAR_PER_POINT) <= 0.0001 || fabs(N_VALUE) <= 0.0001 ) {
+   if (strDate.day != currentDate || isZero(DOLLAR_PER_POINT) || isZero(N_VALUE)) {
       currentDate = strDate.day;
       
       // TODO : When failed to update Dollar per point, how to handle the issue?
@@ -90,7 +95,7 @@ void OnTick()
       N_VALUE = iATR(SYMBOL, BREAKOUT_TIMEFRAME, 20, 1);
    }
 
-   if (fabs(DOLLAR_PER_POINT) <= 0.0001 || fabs(N_VALUE) <= 0.0001) {
+   if (isZero(DOLLAR_PER_POINT) || isZero(N_VALUE)) {
       PrintFormat("Not initialized well. Dollar point : %f, N_VALUE : %f", DOLLAR_PER_POINT, N_VALUE);
       return;
    }
@@ -142,7 +147,7 @@ void updateTargetPrice() {
       else TARGET_SELL_PRICE = iLow(SYMBOL, BREAKOUT_TIMEFRAME, lowBarIndex);
    }
 
-   if (fabs(TARGET_BUY_PRICE) <= 0.0001 || fabs(TARGET_SELL_PRICE) <= 0.0001) {
+   if (isZero(TARGET_BUY_PRICE) || isZero(TARGET_SELL_PRICE)) {
       Print("updateTargetPrice :: Failed to get target Price");
       updateTargetPrice();
    }
@@ -228,7 +233,7 @@ void closeAllOrders () {
 
    // Check STOP LOSS
    if (CURRENT_UNIT_COUNT > 0) {
-      if (fabs(currentPrice) <= 0.0001) {
+      if (isZero(currentPrice)) {
          Print("closeAllOrders :: Fail iOpen Current Price");
          return;
       }
@@ -240,7 +245,7 @@ void closeAllOrders () {
       if (highBarIndex == -1) profitSellPrice = 99999999999999;
       else profitSellPrice = iHigh(SYMBOL, BREAKOUT_TIMEFRAME, highBarIndex);
 
-      if (fabs(profitSellPrice) <= 0.0001) {
+      if (isZero(profitSellPrice)) {
          Print("closeAllOrders :: iHigh failed");
          return;
       }
@@ -250,13 +255,13 @@ void closeAllOrders () {
       if (lowBarIndex == -1) profitBuyPrice = -9999999999;
       else profitBuyPrice = iLow(SYMBOL, BREAKOUT_TIMEFRAME, lowBarIndex);
 
-      if (fabs(profitBuyPrice) <= 0.0001) {
+      if (isZero(profitBuyPrice)) {
          Print("closeAllOrders :: iLos failed");
          return;
       }
 
       if (CURRENT_CMD == OP_BUY) {
-         if (currentPrice <= TARGET_STOPLOSS_PRICE) {
+         if (isSmaller(currentPrice,TARGET_STOPLOSS_PRICE)) {
             CURRENT_UNIT_COUNT--;
             int totalTicketCount = TICKET_ARR[CURRENT_UNIT_COUNT][0];
 
@@ -276,7 +281,7 @@ void closeAllOrders () {
             }
          }
          
-         if (currentPrice <= profitBuyPrice) {
+         if (isSmaller(currentPrice, profitBuyPrice)) {
             for (int unitIdx = 0; unitIdx < CURRENT_UNIT_COUNT; unitIdx++) {
                int totalTicketCount = TICKET_ARR[unitIdx][0];
 
@@ -302,7 +307,7 @@ void closeAllOrders () {
          }
       }
       else if (CURRENT_CMD == OP_SELL) {
-         if (currentPrice >= TARGET_STOPLOSS_PRICE ) {
+         if (isBigger(currentPrice, TARGET_STOPLOSS_PRICE) ) {
             CURRENT_UNIT_COUNT--;
             int totalTicketCount = TICKET_ARR[CURRENT_UNIT_COUNT][0];
 
@@ -320,7 +325,7 @@ void closeAllOrders () {
             }
          }
          
-         if (currentPrice >= profitSellPrice) {
+         if (isBigger(currentPrice, profitSellPrice)) {
             for (int unitIdx = 0; unitIdx < CURRENT_UNIT_COUNT; unitIdx++) {
                int totalTicketCount = TICKET_ARR[unitIdx][0];
 
@@ -362,19 +367,19 @@ void canSendOrder () {
 
    double currentPrice = Close[0];
 
-   if (fabs(currentPrice) <= 0.0001) {
+   if (isZero(currentPrice)) {
       Print("canSendOrder :: Fail iOpen Current Price");
       return;
    }
 
    if (CURRENT_UNIT_COUNT > 0) {
-      if(currentPrice >= TARGET_BUY_PRICE && CURRENT_CMD == OP_BUY) {
+      if(isBigger(currentPrice, TARGET_BUY_PRICE) && CURRENT_CMD == OP_BUY) {
          if (!checkTotalMarketsUnitCount(CURRENT_CMD)) return;
 
          PrintFormat("Send Buy Order On Cur Price : %f, Target Buy Price : %f", currentPrice, TARGET_BUY_PRICE);
          sendOrders(OP_BUY, Ask);
       }
-      else if (currentPrice <= TARGET_SELL_PRICE && CURRENT_CMD == OP_SELL) {
+      else if (isSmaller(currentPrice, TARGET_SELL_PRICE) && CURRENT_CMD == OP_SELL) {
          if (!checkTotalMarketsUnitCount(CURRENT_CMD)) return;
 
          PrintFormat("Send Sell Order On Cur Price : %f, Target Sell Price : %f", currentPrice, TARGET_SELL_PRICE);
@@ -382,13 +387,13 @@ void canSendOrder () {
       }
    }
    else {
-      if(currentPrice >= TARGET_BUY_PRICE) {
+      if(isBigger(currentPrice, TARGET_BUY_PRICE)) {
          if (!checkTotalMarketsUnitCount(OP_BUY)) return;
 
          PrintFormat("Send Buy Order On Cur Price : %f, Target Buy Price : %f", currentPrice, TARGET_BUY_PRICE);
          sendOrders(OP_BUY, Ask);
       }
-      else if (currentPrice <= TARGET_SELL_PRICE) {
+      else if (isSmaller(currentPrice, TARGET_SELL_PRICE)) {
          if (!checkTotalMarketsUnitCount(OP_SELL)) return;
 
          sendOrders(OP_SELL, Bid);
