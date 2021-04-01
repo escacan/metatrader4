@@ -36,6 +36,7 @@ int TICKET_ARR[6][200] = {0};
 double OPENPRICE_ARR[6] = {0};
 bool firstTick = true;
 string SYMBOL = "";
+datetime last_bar_time=0;
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -65,6 +66,12 @@ void OnDeinit(const int reason)
 void OnTick()
   {
 //--- 
+   datetime this_bar_time=iTime(SYMBOL, PRICE_TIMEFRAME ,0);
+   if(last_bar_time == this_bar_time) {
+      return;
+   }
+   last_bar_time = this_bar_time;
+
    Comment(StringFormat("Dollar per point : %f\nN Value : %f\nCurrent Unit Count : %d\nShow prices\nAsk = %G\nBid = %G\nTargetBuy = %f\nTargetSell = %f\nTARGET_STOPLOSS_PRICE = %f\n", DOLLAR_PER_POINT, N_VALUE, CURRENT_UNIT_COUNT,Ask,Bid,TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE));
 
    datetime tempDate = TimeCurrent();
@@ -136,7 +143,7 @@ void updateTargetPrice() {
    }
 
    if (TARGET_BUY_PRICE == 0 || TARGET_SELL_PRICE == 0) {
-      Alert("updateTargetPrice :: Failed to get target Price");
+      Print("updateTargetPrice :: Failed to get target Price");
       updateTargetPrice();
    }
    else {
@@ -196,7 +203,7 @@ void sendOrders(int cmd, double price) {
                break;
             }
             else {
-               Alert("Fail OrderSelect : Order ID = ", ticketNum);
+               PrintFormat("Fail OrderSelect : Order ID = ", ticketNum);
             }
          }
       }
@@ -205,7 +212,7 @@ void sendOrders(int cmd, double price) {
             OPENPRICE_ARR[CURRENT_UNIT_COUNT] = OrderOpenPrice();
          }
          else {
-            Alert("Fail OrderSelect : Order ID = ", ticketNum);
+            PrintFormat("Fail OrderSelect : Order ID = ", ticketNum);
          }
       }
 
@@ -222,7 +229,7 @@ void closeAllOrders () {
    if (CURRENT_UNIT_COUNT > 0) {
       double currentPrice = iOpen(SYMBOL, PRICE_TIMEFRAME, 0);
       if (currentPrice == 0) {
-         Alert("closeAllOrders :: Fail iOpen Current Price");
+         Print("closeAllOrders :: Fail iOpen Current Price");
          return;
       }
 
@@ -234,7 +241,7 @@ void closeAllOrders () {
       else profitSellPrice = iHigh(SYMBOL, BREAKOUT_TIMEFRAME, highBarIndex);
 
       if (profitSellPrice == 0) {
-         Alert("closeAllOrders :: iHigh failed");
+         Print("closeAllOrders :: iHigh failed");
          return;
       }
 
@@ -244,7 +251,7 @@ void closeAllOrders () {
       else profitBuyPrice = iLow(SYMBOL, BREAKOUT_TIMEFRAME, lowBarIndex);
 
       if (profitBuyPrice == 0) {
-         Alert("closeAllOrders :: iLos failed");
+         Print("closeAllOrders :: iLos failed");
          return;
       }
 
@@ -260,7 +267,7 @@ void closeAllOrders () {
 
                if (OrderSelect(ticketNum, SELECT_BY_TICKET, MODE_TRADES)) {
                   if (!OrderClose(OrderTicket(), OrderLots(), Bid, 3, White)) {
-                     Alert("Fail OrderClose : Order ID = ", ticketNum);
+                     PrintFormat("Fail OrderClose : Order ID = ", ticketNum);
                   }
                   else {
                      closedOrderExist = true;
@@ -280,7 +287,7 @@ void closeAllOrders () {
 
                   if (OrderSelect(ticketNum, SELECT_BY_TICKET, MODE_TRADES)) {
                      if (!OrderClose(OrderTicket(), OrderLots(), Bid, 3, White)) {
-                        Alert("Fail OrderClose : Order ID = ", ticketNum);
+                        PrintFormat("Fail OrderClose : Order ID = ", ticketNum);
                      }
                      else {
                         closedOrderExist = true;
@@ -304,7 +311,7 @@ void closeAllOrders () {
 
                if (OrderSelect(ticketNum, SELECT_BY_TICKET, MODE_TRADES)) {
                   if (!OrderClose(OrderTicket(), OrderLots(), Ask, 3, White)) {
-                     Alert("Fail OrderClose : Order ID = ", ticketNum);
+                     PrintFormat("Fail OrderClose : Order ID = ", ticketNum);
                   }
                   else {
                      closedOrderExist = true;
@@ -322,7 +329,7 @@ void closeAllOrders () {
 
                   if (OrderSelect(ticketNum, SELECT_BY_TICKET, MODE_TRADES)) {
                      if (!OrderClose(OrderTicket(), OrderLots(), Ask, 3, White)) {
-                        Alert("Fail OrderClose : Order ID = ", ticketNum);
+                        PrintFormat("Fail OrderClose : Order ID = ", ticketNum);
                      }
                      else {
                         closedOrderExist = true;
@@ -355,7 +362,7 @@ void canSendOrder () {
 
    double currentPrice = iOpen(SYMBOL, PRICE_TIMEFRAME, 0);
    if (currentPrice == 0) {
-      Alert("canSendOrder :: Fail iOpen Current Price");
+      Print("canSendOrder :: Fail iOpen Current Price");
       return;
    }
 
@@ -547,7 +554,7 @@ void readBakcupFile() {
             OPENPRICE_ARR[unitIdx] = OrderOpenPrice();
          }
          else {
-            Alert("Fail OrderSelect : Order ID = ", ticketNum);
+            PrintFormat("Fail OrderSelect : Order ID = ", ticketNum);
             OPENPRICE_ARR[unitIdx] = 0;
          }
       }
