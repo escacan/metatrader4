@@ -155,7 +155,6 @@ void updateTargetPrice() {
             TARGET_SELL_PRICE = 0;
          }
       }
-      else if (CURRENT_CMD == OP_SELL) {
       else {
          targetStopLoss = latestOrderOpenPrice + diffStopLoss;
 
