@@ -44,7 +44,7 @@ datetime last_bar_time=0;
 int OnInit()
   {
 //---
-   Print("Start Turtle Trading");
+   // Print("Start Turtle Trading");
    SYMBOL = Symbol();
 
    if (LOAD_BACKUP) readBakcupFile();
@@ -174,11 +174,11 @@ void sendOrders(int cmd, double price) {
    while (lotSize > 0) {
       if (lotSize >= MAX_LOT_SIZE_PER_ORDER) {
          lotSize -= MAX_LOT_SIZE_PER_ORDER;
-         PrintFormat("Order Lot Size : %f", MAX_LOT_SIZE_PER_ORDER);
+         // PrintFormat("Order Lot Size : %f", MAX_LOT_SIZE_PER_ORDER);
          ticketNum = OrderSend(SYMBOL, cmd, MAX_LOT_SIZE_PER_ORDER, price, 3, 0, 0, comment, MAGICNO, 0, clrBlue);
       }
       else {
-         PrintFormat("Order Lot Size : %f", lotSize);
+         // PrintFormat("Order Lot Size : %f", lotSize);
          ticketNum = OrderSend(SYMBOL, cmd, lotSize, price, 3, 0, 0, comment, MAGICNO, 0, clrBlue);
          lotSize = 0;
       }
