@@ -52,7 +52,7 @@ int OnInit()
    // Print("Start Turtle Trading");
    SYMBOL = Symbol();
 
-   if (LOAD_BACKUP) readBakcupFile();
+   if (LOAD_BACKUP) readBackUpFile();
 
    return(INIT_SUCCEEDED);
   }
@@ -108,10 +108,14 @@ void OnTick()
 
    if (firstTick || backupFinished) { 
       updateTargetPrice();
-      backupFinished = false;
-      firstTick = false;
+
+      if (isZero(TARGET_BUY_PRICE) || isZero(TARGET_SELL_PRICE)) return;
+      else {
+         backupFinished = false;
+         firstTick = false;
+      }
    }
-   canSendOrder();
+   // canSendOrder();
    setGlobalVar();
   }
 
@@ -125,19 +129,47 @@ void updateTargetPrice() {
    double targetStopLoss = 0;
 
    if (CURRENT_UNIT_COUNT > 0) {
-      latestOrderOpenPrice = OPENPRICE_ARR[CURRENT_UNIT_COUNT - 1];
-      targetStopLoss = latestOrderOpenPrice + diffStopLoss;
+      if (backupFinished) {
+         int highBarIndex = iHighest(SYMBOL, BREAKOUT_TIMEFRAME, MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
+         if (highBarIndex == -1) TARGET_BUY_PRICE = 99999999999999;
+         else TARGET_BUY_PRICE = iHigh(SYMBOL, BREAKOUT_TIMEFRAME, highBarIndex);
 
-      if (CURRENT_CMD == OP_BUY) {
-         TARGET_STOPLOSS_PRICE = targetStopLoss;
-         TARGET_BUY_PRICE = latestOrderOpenPrice + diffPrice;
+         int lowBarIndex = iLowest(SYMBOL, BREAKOUT_TIMEFRAME, MODE_LOW, BASE_TERM_FOR_BREAKOUT, 1);
+         if (lowBarIndex == -1) TARGET_SELL_PRICE = -9999999999;
+         else TARGET_SELL_PRICE = iLow(SYMBOL, BREAKOUT_TIMEFRAME, lowBarIndex);
+
+         if (isZero(TARGET_BUY_PRICE) || isZero(TARGET_SELL_PRICE)) {
+            Print("updateTargetPrice :: Failed to get default target price for backup");
+            return;
+         }
+      }
+
+      latestOrderOpenPrice = OPENPRICE_ARR[CURRENT_UNIT_COUNT - 1];
+      if (isZero(latestOrderOpenPrice)) {
+         CURRENT_UNIT_COUNT--;
+         PrintFormat("updateTargetPrice:: OPENPRICE_ARR[%d] is zero",  CURRENT_UNIT_COUNT);
+         if (CURRENT_CMD == OP_BUY) {
+            TARGET_BUY_PRICE = 0;
+         }
+         else if (CURRENT_CMD == OP_SELL) {
+            TARGET_SELL_PRICE = 0;
+         }
       }
       else if (CURRENT_CMD == OP_SELL) {
-         TARGET_STOPLOSS_PRICE = targetStopLoss;
-         TARGET_SELL_PRICE = latestOrderOpenPrice - diffPrice;
+      else {
+         targetStopLoss = latestOrderOpenPrice + diffStopLoss;
+
+         if (CURRENT_CMD == OP_BUY) {
+            TARGET_STOPLOSS_PRICE = targetStopLoss;
+            TARGET_BUY_PRICE = latestOrderOpenPrice + diffPrice;
+         }
+         else if (CURRENT_CMD == OP_SELL) {
+            TARGET_STOPLOSS_PRICE = targetStopLoss;
+            TARGET_SELL_PRICE = latestOrderOpenPrice - diffPrice;
+         }
       }
    }
-   else if (CURRENT_UNIT_COUNT == 0) {
+   else {
       int highBarIndex = iHighest(SYMBOL, BREAKOUT_TIMEFRAME, MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
       if (highBarIndex == -1) TARGET_BUY_PRICE = 99999999999999;
       else TARGET_BUY_PRICE = iHigh(SYMBOL, BREAKOUT_TIMEFRAME, highBarIndex);
@@ -149,7 +181,6 @@ void updateTargetPrice() {
 
    if (isZero(TARGET_BUY_PRICE) || isZero(TARGET_SELL_PRICE)) {
       Print("updateTargetPrice :: Failed to get target Price");
-      updateTargetPrice();
    }
    else {
       PrintFormat("UpdateTargetPrice:: Target Buy : %f, Target Sell : %f", TARGET_BUY_PRICE, TARGET_SELL_PRICE);
@@ -505,7 +536,7 @@ void backupOrderInfo() {
    else Print("Operation FileOpen failed, error ",GetLastError());
 }
 
-void readBakcupFile() {
+void readBackUpFile() {
    string backupFile = SYMBOL + ".txt";
    int    str_size = 0;
    string str = "";
@@ -527,29 +558,49 @@ void readBakcupFile() {
       str=FileReadString(filehandle,str_size);
       CURRENT_UNIT_COUNT = StrToInteger(str);
 
-      for (int unitIdx= 0; unitIdx< CURRENT_UNIT_COUNT; unitIdx++) {
-         str_size=FileReadInteger(filehandle,INT_VALUE);
-         str=FileReadString(filehandle,str_size);
-         totalTicketCount = StrToInteger(str);
+      PrintFormat("readBackUpFile :: CURRENCT_CMD : %d,  CURRENT_UNIT_COUNT : %d", CURRENT_CMD, CURRENT_UNIT_COUNT);
 
-         for (int ticketIdx = 1; ticketIdx <= totalTicketCount; ticketIdx++) {
+      if (CURRENT_UNIT_COUNT > 0) {
+         for (int unitIdx= 0; unitIdx< CURRENT_UNIT_COUNT; unitIdx++) {
             str_size=FileReadInteger(filehandle,INT_VALUE);
             str=FileReadString(filehandle,str_size);
-            TICKET_ARR[unitIdx][ticketIdx] = StrToInteger(str);
+            totalTicketCount = StrToInteger(str);
+            TICKET_ARR[unitIdx][0] = totalTicketCount;
+
+            for (int ticketIdx = 1; ticketIdx <= totalTicketCount; ticketIdx++) {
+               str_size=FileReadInteger(filehandle,INT_VALUE);
+               str=FileReadString(filehandle,str_size);
+               TICKET_ARR[unitIdx][ticketIdx] = StrToInteger(str);
+            }
          }
 
-         ticketNum = TICKET_ARR[unitIdx][totalTicketCount];
-         if (OrderSelect(ticketNum, SELECT_BY_TICKET, MODE_TRADES)) {
-            OPENPRICE_ARR[unitIdx] = OrderOpenPrice();
-         }
-         else {
-            PrintFormat("Fail OrderSelect : Order ID = ", ticketNum);
-            OPENPRICE_ARR[unitIdx] = 0;
+         int unitIdx = CURRENT_UNIT_COUNT - 1 ;
+         while(unitIdx >= 0) {
+            totalTicketCount = TICKET_ARR[unitIdx][0];
+            for (int ticketIdx = totalTicketCount; ticketIdx >= 1; ticketIdx--) {
+               if (OrderSelect(TICKET_ARR[unitIdx][ticketIdx], SELECT_BY_TICKET, MODE_TRADES)) {
+                  if (OrderCloseTime() == 0) {
+                     TICKET_ARR[unitIdx][0]--;
+                     TICKET_ARR[unitIdx][ticketIdx] = 0;
+                  }
+                  else {
+                     if (isZero(OPENPRICE_ARR[unitIdx])) OPENPRICE_ARR[unitIdx] = OrderOpenPrice();
+                  }
+               }
+            }
+
+            if (isZero(OPENPRICE_ARR[unitIdx])) {
+               PrintFormat("OPENPRICE_ARR[%d] is zero",  unitIdx);
+               CURRENT_UNIT_COUNT--;
+            }
+
+            unitIdx--;
          }
       }
 
       FileClose(filehandle);
 
+      setGlobalVar();
       backupFinished = true;
    }
    else
