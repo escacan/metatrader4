@@ -152,6 +152,7 @@ void updateTargetPrice() {
       updateTargetPrice();
    }
    else {
+      PrintFormat("UpdateTargetPrice:: Target Buy : %f, Target Sell : %f", TARGET_BUY_PRICE, TARGET_SELL_PRICE);
       backupOrderInfo();
    }
 }
@@ -166,16 +167,10 @@ void sendOrders(int cmd, double price) {
    TICKET_ARR[CURRENT_UNIT_COUNT][0] = 0;
    int sentOrderCount = 0;
 
-   if (cmd == 0) {
-         comment = "Send BUY order";
-         stoplossPrice *= -1;
-   }
-   else if (cmd == 1) {
-         comment = "Send SELL order";
-   }
-
    double lotSize = getUnitSize();
-   
+
+   if (isZero(lotSize)) return;
+
    while (lotSize > 0) {
       if (lotSize >= MAX_LOT_SIZE_PER_ORDER) {
          lotSize -= MAX_LOT_SIZE_PER_ORDER;
@@ -357,7 +352,6 @@ void closeAllOrders () {
 void canSendOrder () {
    closeAllOrders();
 
-   // if Current unit count is maximum, we should not order any more.
    if (CURRENT_UNIT_COUNT >= MAXIMUM_UNIT_COUNT) return;
 
    // TODO : Need to check total UNIT count.
@@ -396,8 +390,8 @@ void canSendOrder () {
       else if (isSmaller(currentPrice, TARGET_SELL_PRICE)) {
          if (!checkTotalMarketsUnitCount(OP_SELL)) return;
 
-         sendOrders(OP_SELL, Bid);
          PrintFormat("Send Sell Order On Cur Price : %f, Target Sell Price : %f", currentPrice, TARGET_SELL_PRICE);
+         sendOrders(OP_SELL, Bid);
       }
    }
 }
