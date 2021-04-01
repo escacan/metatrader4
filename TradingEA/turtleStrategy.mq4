@@ -565,11 +565,13 @@ void readBackUpFile() {
             str=FileReadString(filehandle,str_size);
             totalTicketCount = StrToInteger(str);
             TICKET_ARR[unitIdx][0] = totalTicketCount;
+            PrintFormat("Total Ticket Count :: TICKET_ARR[%d][0]: %d", unitIdx, TICKET_ARR[unitIdx][0]);
 
             for (int ticketIdx = 1; ticketIdx <= totalTicketCount; ticketIdx++) {
                str_size=FileReadInteger(filehandle,INT_VALUE);
                str=FileReadString(filehandle,str_size);
                TICKET_ARR[unitIdx][ticketIdx] = StrToInteger(str);
+               PrintFormat("TICKET_ARR[%d][%d] : %d", unitIdx, ticketIdx, TICKET_ARR[unitIdx][ticketIdx]);
             }
          }
 
@@ -577,14 +579,19 @@ void readBackUpFile() {
          while(unitIdx >= 0) {
             totalTicketCount = TICKET_ARR[unitIdx][0];
             for (int ticketIdx = totalTicketCount; ticketIdx >= 1; ticketIdx--) {
+               PrintFormat("Check TICKET_ARR[%d][%d]", unitIdx, ticketIdx);
                if (OrderSelect(TICKET_ARR[unitIdx][ticketIdx], SELECT_BY_TICKET, MODE_TRADES)) {
-                  if (OrderCloseTime() == 0) {
+                  PrintFormat("Select Order %d", TICKET_ARR[unitIdx][ticketIdx]);
+                  if (OrderCloseTime() != 0) {
                      TICKET_ARR[unitIdx][0]--;
                      TICKET_ARR[unitIdx][ticketIdx] = 0;
                   }
                   else {
                      if (isZero(OPENPRICE_ARR[unitIdx])) OPENPRICE_ARR[unitIdx] = OrderOpenPrice();
                   }
+               }
+               else {
+                  PrintFormat("Failed to select Order %d", TICKET_ARR[unitIdx][ticketIdx]);
                }
             }
 
