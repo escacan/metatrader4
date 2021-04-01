@@ -224,11 +224,11 @@ void sendOrders(int cmd, double price) {
 
 void closeAllOrders () {
    bool closedOrderExist = false;
+   double currentPrice = Close[0];
 
    // Check STOP LOSS
    if (CURRENT_UNIT_COUNT > 0) {
-      double currentPrice = iOpen(SYMBOL, PRICE_TIMEFRAME, 0);
-      if (currentPrice == 0) {
+      if (fabs(currentPrice) <= 0.0001) {
          Print("closeAllOrders :: Fail iOpen Current Price");
          return;
       }
@@ -240,7 +240,7 @@ void closeAllOrders () {
       if (highBarIndex == -1) profitSellPrice = 99999999999999;
       else profitSellPrice = iHigh(SYMBOL, BREAKOUT_TIMEFRAME, highBarIndex);
 
-      if (profitSellPrice == 0) {
+      if (fabs(profitSellPrice) <= 0.0001) {
          Print("closeAllOrders :: iHigh failed");
          return;
       }
@@ -250,7 +250,7 @@ void closeAllOrders () {
       if (lowBarIndex == -1) profitBuyPrice = -9999999999;
       else profitBuyPrice = iLow(SYMBOL, BREAKOUT_TIMEFRAME, lowBarIndex);
 
-      if (profitBuyPrice == 0) {
+      if (fabs(profitBuyPrice) <= 0.0001) {
          Print("closeAllOrders :: iLos failed");
          return;
       }
@@ -360,8 +360,9 @@ void canSendOrder () {
    // Loosely related : 10
    // Single Direction : 12 per dir
 
-   double currentPrice = iOpen(SYMBOL, PRICE_TIMEFRAME, 0);
-   if (currentPrice == 0) {
+   double currentPrice = Close[0];
+
+   if (fabs(currentPrice) <= 0.0001) {
       Print("canSendOrder :: Fail iOpen Current Price");
       return;
    }
@@ -421,17 +422,6 @@ double getUnitSize() {
 
       // PrintFormat("You can buy %f Lots!", tradableLotSize);      
       return tradableLotSize;      
-}
-
-// Function of checking current Item's Power.
-// Check price movement during the 3 months
-double checkPower() {
-   // Current Price - Price Prior to 3 months  /  N  
-   double currentPrice = iOpen(SYMBOL, PERIOD_D1, 0);
-   double prevPrice = iOpen(SYMBOL, PERIOD_D1, 90);
-
-   double result = (currentPrice - prevPrice) / N_VALUE;
-   return result;
 }
 
 // Function of setting GlobalVar for Current Item's UNIT Count.
