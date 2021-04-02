@@ -41,7 +41,7 @@ int TICKET_ARR[6][200] = {0};
 double OPENPRICE_ARR[6] = {0};
 bool firstTick = true;
 string SYMBOL = "";
-datetime last_bar_time=0;
+int lastCheckedTime=0;
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -71,18 +71,20 @@ void OnDeinit(const int reason)
 void OnTick()
   {
 //--- 
-   datetime this_bar_time=iTime(SYMBOL, PRICE_TIMEFRAME ,0);
-   if(last_bar_time == this_bar_time) {
+   datetime currentTime = TimeCurrent();
+   int currentCheckTime = TimeMinute(currentTime);
+
+   if (lastCheckedTime == currentCheckTime) {
       return;
-   }
-   last_bar_time = this_bar_time;
+   } 
+   else {
+      lastCheckedTime = currentCheckTime;
+   } 
 
    Comment(StringFormat("Dollar per point : %f\nN Value : %f\nCurrent Unit Count : %d\nShow prices\nAsk = %G\nBid = %G\nTargetBuy = %f\nTargetSell = %f\nTARGET_STOPLOSS_PRICE = %f\n", DOLLAR_PER_POINT, N_VALUE, CURRENT_UNIT_COUNT,Ask,Bid,TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE));
 
-   datetime tempDate = TimeCurrent();
-   int currentTime = TimeSeconds(tempDate);
    MqlDateTime strDate;
-   TimeToStruct(tempDate, strDate);
+   TimeToStruct(currentTime, strDate);
 
    // Daily Update
    if (strDate.day != currentDate || isZero(DOLLAR_PER_POINT) || isZero(N_VALUE)) {
