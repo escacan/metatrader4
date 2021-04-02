@@ -15,24 +15,23 @@
 
 extern int MAGICNO = 3; 
 //--- input parameters
-input int      MARKET_GROUP = 0; // 0: Forex,  1: Metal,  2: Crypto  3: Energy
+input int      MARKET_GROUP = 0; // 0: Forex, 1: Metal, 2: Crypto, 3: Energy
 input double   MAX_LOT_SIZE_PER_ORDER = 50.0;
 input double   RISK = 0.01;
-input double   NOTIONAL_BALANCE = 4000;
+input double   NOTIONAL_BALANCE = 3000;
 input int      BASE_TERM_FOR_BREAKOUT = 55;
 input int      BASE_TERM_FOR_PROFIT = 10;
 input int      MAXIMUM_UNIT_COUNT = 4;
 input double   UNIT_STEP_UP_PORTION = 0.5; 
 input double   STOPLOSS_PORTION = 0.5;
 input ENUM_TIMEFRAMES BREAKOUT_TIMEFRAME = PERIOD_D1;
-input ENUM_TIMEFRAMES PRICE_TIMEFRAME = PERIOD_M1;
 input bool     LOAD_BACKUP = false;
 
 //--- Global Var
 double TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE;
 int CURRENT_UNIT_COUNT = 0;
 int CURRENT_CMD = OP_BUY; // 0 : Buy  1 : Sell
-double N_VALUE = 0; // Need to Update Weekly
+double N_VALUE = 0; 
 double DOLLAR_PER_POINT = 0;
 int currentDate = 0;
 bool backupFinished = false;
