@@ -94,6 +94,7 @@ void OnTick()
       // When N_VALUE is zero, order is sent immediately. Should be fixed!!
       DOLLAR_PER_POINT = MarketInfo(SYMBOL, MODE_TICKVALUE) / MarketInfo(SYMBOL, MODE_TICKSIZE);
       N_VALUE = iATR(SYMBOL, BREAKOUT_TIMEFRAME, 20, 1);
+      updateTargetPrice();
    }
 
    if (isZero(DOLLAR_PER_POINT) || isZero(N_VALUE)) {
@@ -116,7 +117,7 @@ void OnTick()
          firstTick = false;
       }
    }
-   // canSendOrder();
+   canSendOrder();
    setGlobalVar();
   }
 
