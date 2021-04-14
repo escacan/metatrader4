@@ -435,7 +435,7 @@ double getUnitSize() {
       if (CURRENT_UNIT_COUNT == MAXIMUM_UNIT_COUNT) return 0;
 
       double tradableLotSize = 0;
-      double dollarVolatility = N_VALUE * DOLLAR_PER_POINT;
+      double dollarVolatility = N_VALUE * DOLLAR_PER_POINT * STOPLOSS_PORTION;
       
       double maxRiskForAccount = NOTIONAL_BALANCE * RISK;
 
