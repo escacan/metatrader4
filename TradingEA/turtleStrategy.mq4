@@ -25,7 +25,7 @@ input int      MAXIMUM_UNIT_COUNT = 4;
 input double   UNIT_STEP_UP_PORTION = 0.5; 
 input double   STOPLOSS_PORTION = 0.5;
 input ENUM_TIMEFRAMES BREAKOUT_TIMEFRAME = PERIOD_D1;
-input bool     LOAD_BACKUP = false;
+input bool     LOAD_BACKUP = true;
 
 //--- Global Var
 double TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE;
