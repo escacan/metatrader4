@@ -93,7 +93,11 @@ void OnTick()
       // Especially on Forex items.
       // When N_VALUE is zero, order is sent immediately. Should be fixed!!
       DOLLAR_PER_POINT = MarketInfo(SYMBOL, MODE_TICKVALUE) / MarketInfo(SYMBOL, MODE_TICKSIZE);
-      N_VALUE = iATR(SYMBOL, BREAKOUT_TIMEFRAME, 20, 1);
+
+      if (CURRENT_UNIT_COUNT == 0 || isZero(N_VALUE)) {
+         N_VALUE = iATR(SYMBOL, BREAKOUT_TIMEFRAME, 20, 1);
+      }
+
       updateTargetPrice();
    }
 
@@ -290,6 +294,8 @@ void closeAllOrders () {
       if (CURRENT_CMD == OP_BUY) {
          if (isSmaller(currentPrice,TARGET_STOPLOSS_PRICE)) {
             CURRENT_UNIT_COUNT--;
+            if (CURRENT_UNIT_COUNT == 0) N_VALUE = 0;
+
             int totalTicketCount = TICKET_ARR[CURRENT_UNIT_COUNT][0];
 
             for (int ticketIdx = 1; ticketIdx <= totalTicketCount; ticketIdx++) {
@@ -331,11 +337,14 @@ void closeAllOrders () {
             }
 
             CURRENT_UNIT_COUNT = 0;
+            N_VALUE = 0;
          }
       }
       else if (CURRENT_CMD == OP_SELL) {
          if (isBigger(currentPrice, TARGET_STOPLOSS_PRICE) ) {
             CURRENT_UNIT_COUNT--;
+            if (CURRENT_UNIT_COUNT == 0) N_VALUE = 0;
+
             int totalTicketCount = TICKET_ARR[CURRENT_UNIT_COUNT][0];
 
             for (int ticketIdx = 1; ticketIdx <= totalTicketCount; ticketIdx++) {
@@ -373,6 +382,7 @@ void closeAllOrders () {
             }
 
             CURRENT_UNIT_COUNT = 0;
+            N_VALUE = 0;
          }
       }
    }
