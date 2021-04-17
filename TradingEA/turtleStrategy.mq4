@@ -1,5 +1,5 @@
 //+------------------------------------------------------------------+
-//|                                              Turtle Strategy.mq4 |
+//|                                                      Turtle2.mq4 |
 //|                        Copyright 2021, MetaQuotes Software Corp. |
 //|                                             https://www.mql5.com |
 //+------------------------------------------------------------------+
@@ -572,7 +572,7 @@ void readBackUpFile() {
       str=FileReadString(filehandle,str_size);
       N_VALUE = StrToDouble(str);
 
-      PrintFormat("readBackUpFile :: CURRENCT_CMD : %d,  CURRENT_UNIT_COUNT : %d", CURRENT_CMD, CURRENT_UNIT_COUNT);
+      PrintFormat("readBackUpFile :: CURRENCT_CMD : %d,  CURRENT_UNIT_COUNT : %d, N_VALUE : %f", CURRENT_CMD, CURRENT_UNIT_COUNT, N_VALUE);
 
       if (CURRENT_UNIT_COUNT > 0) {
          for (int unitIdx= 0; unitIdx< CURRENT_UNIT_COUNT; unitIdx++) {
