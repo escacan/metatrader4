@@ -530,6 +530,7 @@ void backupOrderInfo() {
 
       FileWrite(filehandle,CURRENT_CMD);
       FileWrite(filehandle,CURRENT_UNIT_COUNT);
+      FileWrite(filehandle,N_VALUE);
 
       if (CURRENT_UNIT_COUNT > 0) {
          for (int unitIdx= 0; unitIdx< CURRENT_UNIT_COUNT; unitIdx++) {
@@ -568,6 +569,10 @@ void readBackUpFile() {
       str_size=FileReadInteger(filehandle,INT_VALUE);
       str=FileReadString(filehandle,str_size);
       CURRENT_UNIT_COUNT = StrToInteger(str);
+
+      str_size=FileReadInteger(filehandle,INT_VALUE);
+      str=FileReadString(filehandle,str_size);
+      N_VALUE = StrToInteger(str);
 
       PrintFormat("readBackUpFile :: CURRENCT_CMD : %d,  CURRENT_UNIT_COUNT : %d", CURRENT_CMD, CURRENT_UNIT_COUNT);
 
