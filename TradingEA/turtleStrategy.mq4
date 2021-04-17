@@ -572,7 +572,7 @@ void readBackUpFile() {
 
       str_size=FileReadInteger(filehandle,INT_VALUE);
       str=FileReadString(filehandle,str_size);
-      N_VALUE = StrToInteger(str);
+      N_VALUE = StrToDouble(str);
 
       PrintFormat("readBackUpFile :: CURRENCT_CMD : %d,  CURRENT_UNIT_COUNT : %d", CURRENT_CMD, CURRENT_UNIT_COUNT);
 
