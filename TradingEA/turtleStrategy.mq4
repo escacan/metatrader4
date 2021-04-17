@@ -615,6 +615,19 @@ void readBackUpFile() {
             if (isZero(OPENPRICE_ARR[unitIdx])) {
                PrintFormat("OPENPRICE_ARR[%d] is zero",  unitIdx);
                CURRENT_UNIT_COUNT--;
+
+               if(unitIdx < 3) {
+                  for (int idx = unitIdx; idx < 3; idx++) {
+                     TICKET_ARR[idx][0] = TICKET_ARR[idx + 1][0];
+
+                     totalTicketCount = TICKET_ARR[idx + 1][0];
+                     if (totalTicketCount == 0) break;
+                     
+                     for (int ticketIdx = 1; ticketIdx <= totalTicketCount; ticketIdx++) {
+                        TICKET_ARR[idx][ticketIdx] = TICKET_ARR[idx + 1][ticketIdx];
+                     }
+                  }
+               }
             }
 
             unitIdx--;
