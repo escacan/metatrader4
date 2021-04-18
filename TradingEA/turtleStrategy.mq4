@@ -404,7 +404,6 @@ void canSendOrder () {
       return;
    }
 
-   PrintFormat("Price %f -> %f", price1minPrior, currentPrice);
    if (CURRENT_UNIT_COUNT > 0) {
       if(isBigger(currentPrice, TARGET_BUY_PRICE) && isSmaller(price1minPrior, TARGET_BUY_PRICE) && CURRENT_CMD == OP_BUY) {
          if (!checkTotalMarketsUnitCount(CURRENT_CMD)) return;
