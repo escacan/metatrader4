@@ -247,6 +247,7 @@ void sendOrders(int cmd, double price) {
          }
       }
 
+      PrintFormat("SendOrder:: TICKET_ARR[%d][0]: %d, TICKET_ARR[%d][1]: %d, OPENPRICE: %f", CURRENT_UNIT_COUNT, TICKET_ARR[CURRENT_UNIT_COUNT][0], CURRENT_UNIT_COUNT, TICKET_ARR[CURRENT_UNIT_COUNT][1],OPENPRICE_ARR[CURRENT_UNIT_COUNT]);
       CURRENT_UNIT_COUNT++;
 
       updateTargetPrice();
