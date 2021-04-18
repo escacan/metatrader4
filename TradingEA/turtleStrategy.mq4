@@ -255,11 +255,14 @@ void sendOrders(int cmd, double price) {
 }
 
 void closeAllOrders () {
+   Print("closeAllOrders Start");
    bool closedOrderExist = false;
    double currentPrice = Close[0];
 
    // Check STOP LOSS
    if (CURRENT_UNIT_COUNT > 0) {
+      PrintFormat("Current Unit Count : %d", CURRENT_UNIT_COUNT);
+
       if (isZero(currentPrice)) {
          Print("closeAllOrders :: Fail iOpen Current Price");
          return;
@@ -287,8 +290,15 @@ void closeAllOrders () {
          return;
       }
 
+      PrintFormat("CUrrent Price : %f, STOPLOSS : %f", currentPrice, TARGET_STOPLOSS_PRICE);
+      PrintFormat("Is Smaller : %d", isSmaller(currentPrice,TARGET_STOPLOSS_PRICE));
+
+      Print("closeAllOrders 296");
+      
       if (CURRENT_CMD == OP_BUY) {
          if (isSmaller(currentPrice,TARGET_STOPLOSS_PRICE)) {
+            Print("closeAllOrders 300");
+
             CURRENT_UNIT_COUNT--;
             if (CURRENT_UNIT_COUNT == 0) N_VALUE = 0;
 
@@ -312,6 +322,8 @@ void closeAllOrders () {
          
          if (isSmaller(currentPrice, profitBuyPrice)) {
             for (int unitIdx = 0; unitIdx < CURRENT_UNIT_COUNT; unitIdx++) {
+               Print("closeAllOrders 325");
+
                int totalTicketCount = TICKET_ARR[unitIdx][0];
 
                for (int ticketIdx = 1; ticketIdx <= totalTicketCount; ticketIdx++) {
@@ -331,6 +343,8 @@ void closeAllOrders () {
 
                TICKET_ARR[unitIdx][0] = 0;
             }
+
+            Print("closeAllOrders 347");
 
             CURRENT_UNIT_COUNT = 0;
             N_VALUE = 0;
