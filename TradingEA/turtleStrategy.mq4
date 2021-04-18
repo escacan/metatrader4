@@ -436,9 +436,6 @@ void canSendOrder () {
 // Function of check Unit Size for 1% Risk
 // TODO : Need to remove commented sources
 double getUnitSize() {
-      // if Current unit count is maximum, we should not order any more.
-      if (CURRENT_UNIT_COUNT == MAXIMUM_UNIT_COUNT) return 0;
-
       double tradableLotSize = 0;
       double dollarVolatility = N_VALUE * DOLLAR_PER_POINT * STOPLOSS_PORTION;
       
