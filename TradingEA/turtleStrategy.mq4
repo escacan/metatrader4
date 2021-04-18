@@ -397,21 +397,21 @@ void canSendOrder () {
    // Single Direction : 12 per dir
 
    double currentPrice = Close[0];
-   double price1minPrior = iClose(SYMBOL, PERIOD_M1, 1);
+   double openPrice = Open[0];
 
-   if (isZero(currentPrice) || isZero(price1minPrior)) {
+   if (isZero(currentPrice) || isZero(openPrice)) {
       Print("canSendOrder :: Fail iOpen Current Price");
       return;
    }
 
    if (CURRENT_UNIT_COUNT > 0) {
-      if(isBigger(currentPrice, TARGET_BUY_PRICE) && isSmaller(price1minPrior, TARGET_BUY_PRICE) && CURRENT_CMD == OP_BUY) {
+      if(isBigger(currentPrice, TARGET_BUY_PRICE) && isSmaller(openPrice, TARGET_BUY_PRICE) && CURRENT_CMD == OP_BUY) {
          if (!checkTotalMarketsUnitCount(CURRENT_CMD)) return;
 
          PrintFormat("Send Buy Order On Cur Price : %f, Target Buy Price : %f", currentPrice, TARGET_BUY_PRICE);
          sendOrders(OP_BUY, Ask);
       }
-      else if (isSmaller(currentPrice, TARGET_SELL_PRICE) && isBigger(price1minPrior, TARGET_SELL_PRICE) && CURRENT_CMD == OP_SELL) {
+      else if (isSmaller(currentPrice, TARGET_SELL_PRICE) && isBigger(openPrice, TARGET_SELL_PRICE) && CURRENT_CMD == OP_SELL) {
          if (!checkTotalMarketsUnitCount(CURRENT_CMD)) return;
 
          PrintFormat("Send Sell Order On Cur Price : %f, Target Sell Price : %f", currentPrice, TARGET_SELL_PRICE);
@@ -419,13 +419,13 @@ void canSendOrder () {
       }
    }
    else {
-      if(isBigger(currentPrice, TARGET_BUY_PRICE) && isSmaller(price1minPrior, TARGET_BUY_PRICE)) {
+      if(isBigger(currentPrice, TARGET_BUY_PRICE) && isSmaller(openPrice, TARGET_BUY_PRICE)) {
          if (!checkTotalMarketsUnitCount(OP_BUY)) return;
 
          PrintFormat("Send Buy Order On Cur Price : %f, Target Buy Price : %f", currentPrice, TARGET_BUY_PRICE);
          sendOrders(OP_BUY, Ask);
       }
-      else if (isSmaller(currentPrice, TARGET_SELL_PRICE) && isBigger(price1minPrior, TARGET_SELL_PRICE)) {
+      else if (isSmaller(currentPrice, TARGET_SELL_PRICE) && isBigger(openPrice, TARGET_SELL_PRICE)) {
          if (!checkTotalMarketsUnitCount(OP_SELL)) return;
 
          PrintFormat("Send Sell Order On Cur Price : %f, Target Sell Price : %f", currentPrice, TARGET_SELL_PRICE);
