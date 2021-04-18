@@ -282,7 +282,7 @@ void closeAllOrders () {
       else profitBuyPrice = iLow(SYMBOL, BREAKOUT_TIMEFRAME, lowBarIndex);
 
       if (isZero(profitBuyPrice)) {
-         Print("closeAllOrders :: iLos failed");
+         Print("closeAllOrders :: iLow failed");
          return;
       }
 
