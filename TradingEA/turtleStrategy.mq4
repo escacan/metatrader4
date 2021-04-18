@@ -130,7 +130,6 @@ void updateTargetPrice() {
    if (CURRENT_CMD == OP_BUY) diffStopLoss *= -1;
 
    double latestOrderOpenPrice = 0;
-   double targetStopLoss = 0;
 
    if (CURRENT_UNIT_COUNT > 0) {
       if (backupFinished) {
@@ -160,14 +159,12 @@ void updateTargetPrice() {
          }
       }
       else {
-         targetStopLoss = latestOrderOpenPrice + diffStopLoss;
+         TARGET_STOPLOSS_PRICE = latestOrderOpenPrice + diffStopLoss;
 
          if (CURRENT_CMD == OP_BUY) {
-            TARGET_STOPLOSS_PRICE = targetStopLoss;
             TARGET_BUY_PRICE = latestOrderOpenPrice + diffPrice;
          }
          else if (CURRENT_CMD == OP_SELL) {
-            TARGET_STOPLOSS_PRICE = targetStopLoss;
             TARGET_SELL_PRICE = latestOrderOpenPrice - diffPrice;
          }
       }
@@ -271,7 +268,7 @@ void closeAllOrders () {
       double profitSellPrice = 0;
 
       int highBarIndex = iHighest(SYMBOL, BREAKOUT_TIMEFRAME,MODE_HIGH, BASE_TERM_FOR_PROFIT, 1);
-      if (highBarIndex == -1) profitSellPrice = 99999999999999;
+      if (highBarIndex == -1) profitSellPrice = 0;
       else profitSellPrice = iHigh(SYMBOL, BREAKOUT_TIMEFRAME, highBarIndex);
 
       if (isZero(profitSellPrice)) {
@@ -281,7 +278,7 @@ void closeAllOrders () {
 
 
       int lowBarIndex = iLowest(SYMBOL, BREAKOUT_TIMEFRAME,MODE_LOW, BASE_TERM_FOR_PROFIT, 1);
-      if (lowBarIndex == -1) profitBuyPrice = -9999999999;
+      if (lowBarIndex == -1) profitBuyPrice = 0;
       else profitBuyPrice = iLow(SYMBOL, BREAKOUT_TIMEFRAME, lowBarIndex);
 
       if (isZero(profitBuyPrice)) {
@@ -633,6 +630,10 @@ void readBackUpFile() {
       }
 
       FileClose(filehandle);
+
+      for (int i = 0; i< CURRENT_UNIT_COUNT; i++) {
+         PrintFormat("Order %d : Open Price : %f", i, OPENPRICE_ARR[i]);
+      }
 
       setGlobalVar();
       backupFinished = true;
