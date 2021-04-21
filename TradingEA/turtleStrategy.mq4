@@ -438,7 +438,7 @@ void canSendOrder () {
 // TODO : Need to remove commented sources
 double getUnitSize() {
       double tradableLotSize = 0;
-      double dollarVolatility = N_VALUE * DOLLAR_PER_POINT * STOPLOSS_PORTION;
+      double dollarVolatility = N_VALUE * DOLLAR_PER_POINT;
       
       double maxRiskForAccount = NOTIONAL_BALANCE * RISK;
 
