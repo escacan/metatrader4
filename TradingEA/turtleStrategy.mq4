@@ -13,7 +13,7 @@
 #define isBigger(x,y) (x-y >= 0.000000001)
 #define isSmaller(x,y) (x-y <= -0.000000001)
 
-extern int MAGICNO = 3; 
+extern int MAGICNO = 3;
 //--- input parameters
 input int      MARKET_GROUP = 0; // 0: Forex, 1: Metal, 2: Crypto, 3: Energy
 input double   MAX_LOT_SIZE_PER_ORDER = 50.0;
@@ -22,7 +22,7 @@ input double   NOTIONAL_BALANCE = 3000;
 input int      BASE_TERM_FOR_BREAKOUT = 55;
 input int      BASE_TERM_FOR_PROFIT = 10;
 input int      MAXIMUM_UNIT_COUNT = 4;
-input double   UNIT_STEP_UP_PORTION = 0.5; 
+input double   UNIT_STEP_UP_PORTION = 0.5;
 input double   STOPLOSS_PORTION = 0.5;
 input ENUM_TIMEFRAMES BREAKOUT_TIMEFRAME = PERIOD_D1;
 input bool     LOAD_BACKUP = true;
@@ -31,10 +31,11 @@ input bool     LOAD_BACKUP = true;
 double TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE;
 int CURRENT_UNIT_COUNT = 0;
 int CURRENT_CMD = OP_BUY; // 0 : Buy  1 : Sell
-double N_VALUE = 0; 
+double N_VALUE = 0;
 double DOLLAR_PER_POINT = 0;
 int currentDate = 0;
 bool backupFinished = false;
+bool checkOpenGap = false;
 
 int TICKET_ARR[6][200] = {0};
 double OPENPRICE_ARR[6] = {0};
@@ -69,16 +70,16 @@ void OnDeinit(const int reason)
 //+------------------------------------------------------------------+
 void OnTick()
   {
-//--- 
+//---
    datetime currentTime = TimeCurrent();
    int currentCheckTime = TimeMinute(currentTime);
 
    if (lastCheckedTime == currentCheckTime) {
       return;
-   } 
+   }
    else {
       lastCheckedTime = currentCheckTime;
-   } 
+   }
 
    Comment(StringFormat("Dollar per point : %f\nN Value : %f\nCurrent Unit Count : %d\nShow prices\nAsk = %G\nBid = %G\nTargetBuy = %f\nTargetSell = %f\nTARGET_STOPLOSS_PRICE = %f\n", DOLLAR_PER_POINT, N_VALUE, CURRENT_UNIT_COUNT,Ask,Bid,TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE));
 
@@ -87,8 +88,12 @@ void OnTick()
 
    // Daily Update
    if (strDate.day != currentDate || isZero(DOLLAR_PER_POINT) || isZero(N_VALUE)) {
-      currentDate = strDate.day;
-      
+      if (strDate.day != currentDate) {
+         currentDate = strDate.day;
+         // If date changed, check whether there are open Gap.
+         checkOpenGap = true;
+      }
+
       // TODO : When failed to update Dollar per point, how to handle the issue?
       // Especially on Forex items.
       // When N_VALUE is zero, order is sent immediately. Should be fixed!!
@@ -110,7 +115,7 @@ void OnTick()
 
    if (tradableSize == 0) return;
 
-   if (firstTick || backupFinished) { 
+   if (firstTick || backupFinished) {
       updateTargetPrice();
 
       if (isZero(TARGET_BUY_PRICE) || isZero(TARGET_SELL_PRICE)) return;
@@ -308,7 +313,7 @@ void closeAllOrders () {
                }
             }
          }
-         
+
          if (isSmaller(currentPrice, profitBuyPrice)) {
             for (int unitIdx = 0; unitIdx < CURRENT_UNIT_COUNT; unitIdx++) {
                int totalTicketCount = TICKET_ARR[unitIdx][0];
@@ -355,7 +360,7 @@ void closeAllOrders () {
                }
             }
          }
-         
+
          if (isBigger(currentPrice, profitSellPrice)) {
             for (int unitIdx = 0; unitIdx < CURRENT_UNIT_COUNT; unitIdx++) {
                int totalTicketCount = TICKET_ARR[unitIdx][0];
@@ -396,13 +401,15 @@ void canSendOrder () {
    // Loosely related : 10
    // Single Direction : 12 per dir
 
+   double prevClosePrice = Close[1];
    double currentPrice = Close[0];
    double openPrice = Open[0];
 
    if (isZero(currentPrice) || isZero(openPrice)) {
-      Print("canSendOrder :: Fail iOpen Current Price");
+      Print("canSendOrder :: Failed to Get current Price Data");
       return;
    }
+
 
    if (CURRENT_UNIT_COUNT > 0) {
       if(isBigger(currentPrice, TARGET_BUY_PRICE) && isSmaller(openPrice, TARGET_BUY_PRICE) && CURRENT_CMD == OP_BUY) {
@@ -411,7 +418,19 @@ void canSendOrder () {
          PrintFormat("Send Buy Order On Cur Price : %f, Target Buy Price : %f", currentPrice, TARGET_BUY_PRICE);
          sendOrders(OP_BUY, Ask);
       }
+      else if(isBigger(currentPrice, TARGET_BUY_PRICE) && isSmaller(prevClosePrice, TARGET_BUY_PRICE) && CURRENT_CMD == OP_BUY && checkOpenGap) {
+         if (!checkTotalMarketsUnitCount(CURRENT_CMD)) return;
+
+         PrintFormat("Send Buy Order On Cur Price : %f, Target Buy Price : %f", currentPrice, TARGET_BUY_PRICE);
+         sendOrders(OP_BUY, Ask);
+      }
       else if (isSmaller(currentPrice, TARGET_SELL_PRICE) && isBigger(openPrice, TARGET_SELL_PRICE) && CURRENT_CMD == OP_SELL) {
+         if (!checkTotalMarketsUnitCount(CURRENT_CMD)) return;
+
+         PrintFormat("Send Sell Order On Cur Price : %f, Target Sell Price : %f", currentPrice, TARGET_SELL_PRICE);
+         sendOrders(OP_SELL, Bid);
+      }
+      else if (isSmaller(currentPrice, TARGET_SELL_PRICE) && isBigger(prevClosePrice, TARGET_SELL_PRICE) && CURRENT_CMD == OP_SELL && checkOpenGap) {
          if (!checkTotalMarketsUnitCount(CURRENT_CMD)) return;
 
          PrintFormat("Send Sell Order On Cur Price : %f, Target Sell Price : %f", currentPrice, TARGET_SELL_PRICE);
@@ -425,13 +444,27 @@ void canSendOrder () {
          PrintFormat("Send Buy Order On Cur Price : %f, Target Buy Price : %f", currentPrice, TARGET_BUY_PRICE);
          sendOrders(OP_BUY, Ask);
       }
+      else if(isBigger(currentPrice, TARGET_BUY_PRICE) && isSmaller(prevClosePrice, TARGET_BUY_PRICE) && checkOpenGap) {
+         if (!checkTotalMarketsUnitCount(OP_BUY)) return;
+
+         PrintFormat("Send Buy Order On Cur Price : %f, Target Buy Price : %f", currentPrice, TARGET_BUY_PRICE);
+         sendOrders(OP_BUY, Ask);
+      }
       else if (isSmaller(currentPrice, TARGET_SELL_PRICE) && isBigger(openPrice, TARGET_SELL_PRICE)) {
          if (!checkTotalMarketsUnitCount(OP_SELL)) return;
 
          PrintFormat("Send Sell Order On Cur Price : %f, Target Sell Price : %f", currentPrice, TARGET_SELL_PRICE);
          sendOrders(OP_SELL, Bid);
       }
+      else if (isSmaller(currentPrice, TARGET_SELL_PRICE) && isBigger(prevClosePrice, TARGET_SELL_PRICE) && checkOpenGap) {
+         if (!checkTotalMarketsUnitCount(OP_SELL)) return;
+
+         PrintFormat("Send Sell Order On Cur Price : %f, Target Sell Price : %f", currentPrice, TARGET_SELL_PRICE);
+         sendOrders(OP_SELL, Bid);
+      }
    }
+
+   if (checkOpenGap) checkOpenGap = false;
 }
 
 // Function of check Unit Size for 1% Risk
@@ -439,14 +472,14 @@ void canSendOrder () {
 double getUnitSize() {
       double tradableLotSize = 0;
       double dollarVolatility = N_VALUE * DOLLAR_PER_POINT;
-      
+
       double maxRiskForAccount = NOTIONAL_BALANCE * RISK;
 
       double maxLotBasedOnDollarVolatility = maxRiskForAccount / dollarVolatility;
-      
+
       double tradableMinLotSize = MarketInfo(SYMBOL, MODE_MINLOT);
       double requiredMinBalance = tradableMinLotSize * dollarVolatility / RISK;
-      
+
       if (maxLotBasedOnDollarVolatility >= tradableMinLotSize) {
          tradableLotSize = maxLotBasedOnDollarVolatility - MathMod(maxLotBasedOnDollarVolatility, tradableMinLotSize);
       }
@@ -454,8 +487,8 @@ double getUnitSize() {
          PrintFormat("You need at least %f for risk management. Find other item.", requiredMinBalance);
       }
 
-      // PrintFormat("You can buy %f Lots!", tradableLotSize);      
-      return tradableLotSize;      
+      // PrintFormat("You can buy %f Lots!", tradableLotSize);
+      return tradableLotSize;
 }
 
 // Function of setting GlobalVar for Current Item's UNIT Count.
@@ -549,7 +582,7 @@ void readBackUpFile() {
    int ticketNum = 0;
 
    PrintFormat("Read File :: %s", backupFile);
-   
+
    int filehandle = FileOpen(backupFile,FILE_READ|FILE_TXT);
    if(filehandle != INVALID_HANDLE)
    {
@@ -615,7 +648,7 @@ void readBackUpFile() {
 
                      totalTicketCount = TICKET_ARR[idx + 1][0];
                      if (totalTicketCount == 0) break;
-                     
+
                      for (int ticketIdx = 1; ticketIdx <= totalTicketCount; ticketIdx++) {
                         TICKET_ARR[idx][ticketIdx] = TICKET_ARR[idx + 1][ticketIdx];
                      }
@@ -639,5 +672,5 @@ void readBackUpFile() {
    else
    {
       PrintFormat("File "+backupFile+" not found, the last error is ", GetLastError());
-   }  
-}  
+   }
+}
