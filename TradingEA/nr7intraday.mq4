@@ -266,6 +266,11 @@ void closeOrder() {
             }
             else {
                 IsNR7PositionExist = false;
+                datetime currentTime = TimeCurrent();
+                MqlDateTime strDate;
+                TimeToStruct(currentTime, strDate);
+                currentDate = strDate.day;
+
                 SETUP_CONDITION_MADE = checkSetup();
             }
         }
@@ -275,6 +280,11 @@ void closeOrder() {
             }
             else {
                 IsNR7PositionExist = false;
+                datetime currentTime = TimeCurrent();
+                MqlDateTime strDate;
+                TimeToStruct(currentTime, strDate);
+                currentDate = strDate.day;
+
                 SETUP_CONDITION_MADE = checkSetup();
             }
         }
