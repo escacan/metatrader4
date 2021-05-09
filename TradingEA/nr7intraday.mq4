@@ -200,6 +200,7 @@ void checkStopLoss() {
                 diffPrice -= RValueNR7;
             }
         }
+        rMultiple--;
         if (rMultiple > 0) {
             double tempStoplossNR7 = TARGET_BUY_PRICE + RValueNR7 * (rMultiple - 0.3);
             PrintFormat("rMultiple : %d, TempSL : %f", rMultiple, tempStoplossNR7);
@@ -222,6 +223,7 @@ void checkStopLoss() {
                 diffPrice -= RValueNR7;
             }
         }
+        rMultiple--;
         if (rMultiple > 0) {
             double tempStoplossNR7 = TARGET_SELL_PRICE - RValueNR7 * (rMultiple - 0.3);
             PrintFormat("rMultiple : %d, TempSL : %f", rMultiple, tempStoplossNR7);
