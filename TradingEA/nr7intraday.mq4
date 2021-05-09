@@ -73,6 +73,7 @@ void OnTick()
 
         // Daily Update
         if (strDate.day != currentDate) {
+            currentDate = strDate.day;
             SETUP_CONDITION_MADE = checkSetup();
         }
     }
