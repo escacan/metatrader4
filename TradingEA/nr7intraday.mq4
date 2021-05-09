@@ -23,6 +23,9 @@ int CURRENT_CMD_NR7 = OP_BUY; // 0 : Buy  1 : Sell
 int CURRENT_POSITION_TICKET_NUMBER = 0;
 double RValueNR7 = 0;
 double TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE;
+bool SETUP_CONDITION_MADE = false;
+int currentDate = 0;
+int lastCheckedTime=0;
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -30,7 +33,7 @@ double TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE;
 int OnInit()
   {
 //---
-
+    Print("Init NR7Intraday EA");
 //---
    return(INIT_SUCCEEDED);
   }
@@ -58,16 +61,25 @@ void OnTick()
       lastCheckedTime = currentCheckTime;
    }
 
-    Comment(StringFormat("Dollar per point : %f\nR Value : %f\nShow prices\nAsk = %G\nBid = %G\nTargetBuy = %f\nTargetSell = %f\nTARGET_STOPLOSS_PRICE = %f\n",
-        DOLLAR_PER_POINT, RValueNR7, Ask, Bid, TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE));
+    Comment(StringFormat("R Value : %f\nShow prices\nAsk = %G\nBid = %G\nTargetBuy = %f\nTargetSell = %f\nTARGET_STOPLOSS_PRICE = %f\n",
+        RValueNR7, Ask, Bid, TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE));
 
     if (IsNR7PositionExist) {
         checkStopLoss();
     }
     else {
-        // 날짜가 바뀌었거나 Position을 청산했다면 setup을 체크해야 한다!
+        MqlDateTime strDate;
+        TimeToStruct(currentTime, strDate);
+
+        // Daily Update
+        if (strDate.day != currentDate) {
+            SETUP_CONDITION_MADE = checkSetup();
+        }
     }
 
+    if (SETUP_CONDITION_MADE && !IsNR7PositionExist) {
+        checkBreakout();
+    }
   }
 //+------------------------------------------------------------------+
 
@@ -75,7 +87,7 @@ bool checkSetup() {
     double atrList[8];
     ArrayFill(atrList, 1, 7, 999999999);
     for (int i = 1; i < 8; i++) {
-        double atrValue = iATR(NULL, BREAKOUT_TIMEFRAME, i);
+        double atrValue = iATR(NULL, BREAKOUT_TIMEFRAME, 1, i);
         atrList[i] = atrValue;
     }
 
@@ -170,7 +182,13 @@ void checkStopLoss() {
         }
 
         double diffPrice = fabs(currentPrice - TARGET_BUY_PRICE);
-        int rMultiple = diffPrice / RValueNR7;
+        int rMultiple = 0;
+        if (isBigger(diffPrice, RValueNR7)) {
+            while (diffPrice > 0) {
+                rMultiple++;
+                diffPrice -= RValueNR7;
+            }
+        }
         if (rMultiple > 0) {
             double tempStoplossNR7 = TARGET_BUY_PRICE + RValueNR7 * (rMultiple - 0.3);
             PrintFormat("rMultiple : %d, TempSL : %f", rMultiple, tempStoplossNR7);
@@ -186,7 +204,13 @@ void checkStopLoss() {
         }
 
         double diffPrice = fabs(currentPrice - TARGET_SELL_PRICE);
-        int rMultiple = diffPrice / RValueNR7;
+        int rMultiple = 0;
+        if (isBigger(diffPrice, RValueNR7)) {
+            while (diffPrice > 0) {
+                rMultiple++;
+                diffPrice -= RValueNR7;
+            }
+        }
         if (rMultiple > 0) {
             double tempStoplossNR7 = TARGET_SELL_PRICE - RValueNR7 * (rMultiple - 0.3);
             PrintFormat("rMultiple : %d, TempSL : %f", rMultiple, tempStoplossNR7);
@@ -229,18 +253,20 @@ void closeOrder() {
     if (OrderSelect(CURRENT_POSITION_TICKET_NUMBER, SELECT_BY_TICKET, MODE_TRADES)) {
         if (CURRENT_CMD_NR7 == OP_BUY) {
             if (!OrderClose(OrderTicket(), OrderLots(), Bid, 3, White)) {
-                PrintFormat("Fail OrderClose : Order ID = ", ticketNum);
+                PrintFormat("Fail OrderClose : Order ID = ", CURRENT_POSITION_TICKET_NUMBER);
             }
             else {
                 IsNR7PositionExist = false;
+                SETUP_CONDITION_MADE = checkSetup();
             }
         }
         else {
             if (!OrderClose(OrderTicket(), OrderLots(), Ask, 3, White)) {
-                PrintFormat("Fail OrderClose : Order ID = ", ticketNum);
+                PrintFormat("Fail OrderClose : Order ID = ", CURRENT_POSITION_TICKET_NUMBER);
             }
             else {
                 IsNR7PositionExist = false;
+                SETUP_CONDITION_MADE = checkSetup();
             }
         }
     }
