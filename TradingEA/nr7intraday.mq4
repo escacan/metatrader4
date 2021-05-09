@@ -20,8 +20,9 @@ ENUM_TIMEFRAMES BREAKOUT_TIMEFRAME = PERIOD_D1;
 bool IsNR7PositionExist = false;
 int CURRENT_CMD_NR7 = OP_BUY; // 0 : Buy  1 : Sell
 double OpenPriceNR7 = 0;
-double StoplossPriceNR7 = 0;
+double TARGET_STOPLOSS = 0;
 double RValueNR7 = 0;
+double TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE;
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -47,7 +48,8 @@ void OnDeinit(const int reason)
 void OnTick()
   {
 //---
-
+    Comment(StringFormat("Dollar per point : %f\nR Value : %f\nShow prices\nAsk = %G\nBid = %G\nTargetBuy = %f\nTargetSell = %f\nTARGET_STOPLOSS_PRICE = %f\n",
+    DOLLAR_PER_POINT, RValueNR7, Ask, Bid, TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE));
   }
 //+------------------------------------------------------------------+
 
@@ -59,8 +61,12 @@ bool checkSetup() {
         atrList[i] = atrValue;
     }
 
+    PrintFormat("Current ATR : [%f, %f, %f, %f, %f, %f, %f]", atrList[1], atrList[2], atrList[3], atrList[4], atrList[5], atrList[6], atrList[7]);
+
     // Check atrList[1] is Minimum
     int minimumValue = ArrayMinimum(atrList, 7, 1);
+    PrintFormat("Minimum ATR Index : %d", minimumValue);
+
     if (minimumValue == -1) return false;
     else if (minimumValue != 1) return false;
 
@@ -71,23 +77,40 @@ bool checkSetup() {
     double highOf1DaysAgo = iHigh(NULL, BREAKOUT_TIMEFRAME, 1);
     double lowOf1DaysAgo = iLow(NULL, BREAKOUT_TIMEFRAME, 1);
 
-    if (highOf1DaysAgo == 0 || highOf2DaysAgo == 0 || lowOf1DaysAgo == 0 || lowOf2DaysAgo == 0) return false;
+    if (isZero(highOf1DaysAgo) || isZero(highOf2DaysAgo) || isZero(lowOf1DaysAgo) || isZero(lowOf2DaysAgo)) return false;
 
-    if (highOf1DaysAgo <= highOf2DaysAgo && lowOf1DaysAgo >= lowOf2DaysAgo) return true;
+    if (isSmaller(highOf1DaysAgo, highOf2DaysAgo) && isBigger(lowOf1DaysAgo, lowOf2DaysAgo)) {
+        TARGET_BUY_PRICE = highOf1DaysAgo;
+        TARGET_SELL_PRICE = lowOf1DaysAgo;
+        RValueNR7 = TARGET_BUY_PRICE - TARGET_SELL_PRICE;
+
+        return true;
+    }
     return false;
 }
 
-bool checkBreakout() {
+void checkBreakout() {
     double currentPrice = Close[0];
-    double highOf1DaysAgo = iHigh(NULL, BREAKOUT_TIMEFRAME, 1);
-    double lowOf1DaysAgo = iLow(NULL, BREAKOUT_TIMEFRAME, 1);
+    double tradableLotSize = getUnitSizeNR7();
+
+    if (isZero(tradableLotSize)) {
+        Print("checkBreakout :: Tradable Lot Size is Zero. Check Logs!");
+        return;
+    }
 
     // 현재 가격이 전일 고가보다 높은 경우
-    if (currentPrice > highOf1DaysAgo) return true;
+    if (currentPrice > TARGET_BUY_PRICE) {
+        Print("Send Buy Order");
+        OrderSend(NULL, OP_BUY, MAX_LOT_SIZE_PER_ORDER, price, 3, 0, 0, comment, MAGICNO, 0, clrBlue);
+        IsNR7PositionExist = true;
+        CURRENT_CMD_NR7 = OP_BUY;
+    }
     // 현재 가격이 전일 저가보다 낮은 경우
-    else if (currentPrice < lowOf1DaysAgo) return true;
-
-    return false;
+    else if (currentPrice < TARGET_SELL_PRICE) {
+        Print("Send Sell Order");
+        IsNR7PositionExist = true;
+        CURRENT_CMD_NR7 = OP_SELL;
+    }
 }
 
 void checkStopLoss() {
@@ -98,7 +121,7 @@ void checkStopLoss() {
 
     // Buy 포지션인 경우
     if (CURRENT_CMD_NR7 == OP_BUY) {
-        if (currentPrice <= StoplossPriceNR7) {
+        if (currentPrice <= TARGET_STOPLOSS) {
             Print("Close position");
             return;
         }
@@ -108,12 +131,12 @@ void checkStopLoss() {
         if (rMultiple > 0) {
             double tempStoplossNR7 = OpenPriceNR7 + RValueNR7 * (rMultiple - 0.3);
             PrintFormat("rMultiple : %d, TempSL : %f", rMultiple, tempStoplossNR7);
-            if (tempStoplossNR7 > StoplossPriceNR7) StoplossPriceNR7 = tempStoplossNR7;
+            if (tempStoplossNR7 > TARGET_STOPLOSS) TARGET_STOPLOSS = tempStoplossNR7;
         }
     }
     // Sell 포지션인 경우
     else {
-        if (currentPrice >= StoplossPriceNR7) {
+        if (currentPrice >= TARGET_STOPLOSS) {
             Print("Close position");
             return;
         }
@@ -123,7 +146,7 @@ void checkStopLoss() {
         if (rMultiple > 0) {
             double tempStoplossNR7 = OpenPriceNR7 - RValueNR7 * (rMultiple - 0.3);
             PrintFormat("rMultiple : %d, TempSL : %f", rMultiple, tempStoplossNR7);
-            if (tempStoplossNR7 < StoplossPriceNR7) StoplossPriceNR7 = tempStoplossNR7;
+            if (tempStoplossNR7 < TARGET_STOPLOSS) TARGET_STOPLOSS = tempStoplossNR7;
         }
     }
 }
@@ -135,7 +158,6 @@ double getUnitSizeNR7() {
     double DOLLAR_PER_POINT = MarketInfo(NULL, MODE_TICKVALUE) / MarketInfo(NULL, MODE_TICKSIZE);
     if (isZero(DOLLAR_PER_POINT)) {
         Print("getUnitSizeNR7 :: DOLLAR_PER_POINT is Zero. Need to check!");
-        tradableLotSize = -1;
     }
     else {
         double dollarVolatility = RValueNR7 * DOLLAR_PER_POINT;
@@ -152,7 +174,6 @@ double getUnitSizeNR7() {
         }
         else {
             PrintFormat("You need at least %f for risk management. Find other item.", requiredMinBalance);
-            tradableLotSize = -1;
         }
     }
 
