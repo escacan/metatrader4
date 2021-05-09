@@ -122,6 +122,14 @@ bool checkSetup() {
 
 void checkBreakout() {
     double currentPrice = Close[0];
+    double openPrice = Open[0];
+
+   if (isZero(currentPrice) || isZero(openPrice)) {
+      Print("canSendOrder :: Failed to Get current Price Data");
+      return;
+   }
+
+
     double tradableLotSize = getUnitSizeNR7();
 
     if (isZero(tradableLotSize)) {
@@ -131,8 +139,8 @@ void checkBreakout() {
 
     int ticketNum = 0;
 
-    // 현재 가격이 전일 고가보다 높은 경우
-    if (currentPrice > TARGET_BUY_PRICE) {
+    // 현재 가격이 전일 고가보다 높은 경우 && Target 가격을 돌파하는 경우
+    if (isBigger(currentPrice, TARGET_BUY_PRICE) && isSmaller(openPrice, TARGET_BUY_PRICE)) {
         Print("Send Buy Order");
         ticketNum = OrderSend(NULL, OP_BUY, tradableLotSize, Ask, 3, 0, 0, "", MAGICNO, 0, clrBlue);
         if (ticketNum < 0) {
@@ -145,8 +153,8 @@ void checkBreakout() {
             TARGET_STOPLOSS_PRICE = TARGET_SELL_PRICE;
         }
     }
-    // 현재 가격이 전일 저가보다 낮은 경우
-    else if (currentPrice < TARGET_SELL_PRICE) {
+    // 현재 가격이 전일 저가보다 낮은 경우 && Target 가격을 돌파하는 경우
+    else if (isSmaller(currentPrice, TARGET_SELL_PRICE) && isBigger(openPrice, TARGET_SELL_PRICE)) {
         Print("Send Sell Order");
         ticketNum = OrderSend(NULL, OP_SELL, tradableLotSize, Bid, 3, 0, 0, "", MAGICNO, 0, clrBlue);
         if (ticketNum < 0) {
