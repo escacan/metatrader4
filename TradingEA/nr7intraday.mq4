@@ -92,11 +92,8 @@ bool checkSetup() {
         atrList[i] = atrValue;
     }
 
-    PrintFormat("Current ATR : [%f, %f, %f, %f, %f, %f, %f]", atrList[1], atrList[2], atrList[3], atrList[4], atrList[5], atrList[6], atrList[7]);
-
     // Check atrList[1] is Minimum
     int minimumValue = ArrayMinimum(atrList, 7, 1);
-    PrintFormat("Minimum ATR Index : %d", minimumValue);
 
     if (minimumValue == -1) return false;
     else if (minimumValue != 1) return false;
@@ -203,7 +200,7 @@ void checkStopLoss() {
         rMultiple--;
         if (rMultiple > 0) {
             double tempStoplossNR7 = TARGET_BUY_PRICE + RValueNR7 * (rMultiple - 0.3);
-            PrintFormat("rMultiple : %d, TempSL : %f", rMultiple, tempStoplossNR7);
+            PrintFormat("diffPrice : %f, rValue : %f, rMultiple : %d, CurSL : %f, TempSL : %f", fabs(currentPrice - TARGET_BUY_PRICE), RValueNR7, rMultiple, TARGET_STOPLOSS_PRICE, tempStoplossNR7);
             if (tempStoplossNR7 > TARGET_STOPLOSS_PRICE) TARGET_STOPLOSS_PRICE = tempStoplossNR7;
         }
     }
@@ -226,7 +223,7 @@ void checkStopLoss() {
         rMultiple--;
         if (rMultiple > 0) {
             double tempStoplossNR7 = TARGET_SELL_PRICE - RValueNR7 * (rMultiple - 0.3);
-            PrintFormat("rMultiple : %d, TempSL : %f", rMultiple, tempStoplossNR7);
+            PrintFormat("diffPrice : %f, rValue : %f, rMultiple : %d, CurSL : %f, TempSL : %f", fabs(currentPrice - TARGET_SELL_PRICE), RValueNR7, rMultiple, TARGET_STOPLOSS_PRICE, tempStoplossNR7);
             if (tempStoplossNR7 < TARGET_STOPLOSS_PRICE) TARGET_STOPLOSS_PRICE = tempStoplossNR7;
         }
     }
