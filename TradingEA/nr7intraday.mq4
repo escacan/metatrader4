@@ -193,6 +193,8 @@ void checkStopLoss() {
         }
 
         double diffPrice = fabs(currentPrice - TARGET_BUY_PRICE);
+        PrintFormat("Cur Price : %f, Target Buy : %f,  Diff : %f", currentPrice, TARGET_BUY_PRICE, diffPrice);
+
         int rMultiple = 0;
         if (isBigger(diffPrice, RValueNR7)) {
             while (diffPrice > 0) {
@@ -201,10 +203,14 @@ void checkStopLoss() {
             }
         }
         rMultiple--;
+        PrintFormat("R Multiple : %d", rMultiple);
         if (rMultiple > 0) {
             double tempStoplossNR7 = TARGET_BUY_PRICE + RValueNR7 * (rMultiple - 0.3);
             PrintFormat("rMultiple : %d, TempSL : %f", rMultiple, tempStoplossNR7);
-            if (tempStoplossNR7 > TARGET_STOPLOSS_PRICE) TARGET_STOPLOSS_PRICE = tempStoplossNR7;
+            if (tempStoplossNR7 > TARGET_STOPLOSS_PRICE) {
+                PrintFormat("Update SL Price from %f -> %f", TARGET_STOPLOSS_PRICE, tempStoplossNR7);
+                TARGET_STOPLOSS_PRICE = tempStoplossNR7;
+            }
         }
     }
     // Sell 포지션인 경우
@@ -216,6 +222,7 @@ void checkStopLoss() {
         }
 
         double diffPrice = fabs(currentPrice - TARGET_SELL_PRICE);
+        PrintFormat("Cur Price : %f, Target Sell : %f,  Diff : %f", currentPrice, TARGET_SELL_PRICE, diffPrice);
         int rMultiple = 0;
         if (isBigger(diffPrice, RValueNR7)) {
             while (diffPrice > 0) {
@@ -224,10 +231,14 @@ void checkStopLoss() {
             }
         }
         rMultiple--;
+        PrintFormat("R Multiple : %d", rMultiple);
         if (rMultiple > 0) {
             double tempStoplossNR7 = TARGET_SELL_PRICE - RValueNR7 * (rMultiple - 0.3);
             PrintFormat("rMultiple : %d, TempSL : %f", rMultiple, tempStoplossNR7);
-            if (tempStoplossNR7 < TARGET_STOPLOSS_PRICE) TARGET_STOPLOSS_PRICE = tempStoplossNR7;
+            if (tempStoplossNR7 < TARGET_STOPLOSS_PRICE) {
+                PrintFormat("Update SL Price from %f -> %f", TARGET_STOPLOSS_PRICE, tempStoplossNR7);
+                TARGET_STOPLOSS_PRICE = tempStoplossNR7;
+            }
         }
     }
 }
