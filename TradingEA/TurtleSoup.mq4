@@ -26,6 +26,7 @@ double TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE;
 bool SETUP_CONDITION_MADE = false;
 int currentDate = 0;
 int lastCheckedTime=0;
+int BASE_TERM_FOR_BREAKOUT = 20;
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -55,81 +56,44 @@ void OnTick()
   }
 //+------------------------------------------------------------------+
 
-void updateTargetPrice() {
-   double diffPrice = N_VALUE * UNIT_STEP_UP_PORTION;
-   double diffStopLoss = N_VALUE * STOPLOSS_PORTION;
-   if (CURRENT_CMD == OP_BUY) diffStopLoss *= -1;
-
-   double latestOrderOpenPrice = 0;
-
-   if (CURRENT_UNIT_COUNT > 0) {
-      if (backupFinished) {
-         int highBarIndex = iHighest(NULL, BREAKOUT_TIMEFRAME, MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
-         if (highBarIndex == -1) TARGET_BUY_PRICE = 99999999999999;
-         else TARGET_BUY_PRICE = iHigh(NULL, BREAKOUT_TIMEFRAME, highBarIndex);
-
-         int lowBarIndex = iLowest(NULL, BREAKOUT_TIMEFRAME, MODE_LOW, BASE_TERM_FOR_BREAKOUT, 1);
-         if (lowBarIndex == -1) TARGET_SELL_PRICE = -9999999999;
-         else TARGET_SELL_PRICE = iLow(NULL, BREAKOUT_TIMEFRAME, lowBarIndex);
-
-         if (isZero(TARGET_BUY_PRICE) || isZero(TARGET_SELL_PRICE)) {
-            Print("updateTargetPrice :: Failed to get default target price for backup");
-            return;
-         }
-      }
-
-      latestOrderOpenPrice = OPENPRICE_ARR[CURRENT_UNIT_COUNT - 1];
-      if (isZero(latestOrderOpenPrice)) {
-         CURRENT_UNIT_COUNT--;
-         PrintFormat("updateTargetPrice:: OPENPRICE_ARR[%d] is zero",  CURRENT_UNIT_COUNT);
-         if (CURRENT_CMD == OP_BUY) {
-            TARGET_BUY_PRICE = 0;
-         }
-         else if (CURRENT_CMD == OP_SELL) {
-            TARGET_SELL_PRICE = 0;
-         }
-      }
-      else {
-         TARGET_STOPLOSS_PRICE = latestOrderOpenPrice + diffStopLoss;
-
-         if (CURRENT_CMD == OP_BUY) {
-            TARGET_BUY_PRICE = latestOrderOpenPrice + diffPrice;
-         }
-         else if (CURRENT_CMD == OP_SELL) {
-            TARGET_SELL_PRICE = latestOrderOpenPrice - diffPrice;
-         }
-      }
-   }
-   else {
-      int highBarIndex = iHighest(NULL, BREAKOUT_TIMEFRAME, MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
-      if (highBarIndex == -1) TARGET_BUY_PRICE = 99999999999999;
-      else TARGET_BUY_PRICE = iHigh(NULL, BREAKOUT_TIMEFRAME, highBarIndex);
-
-      int lowBarIndex = iLowest(NULL, BREAKOUT_TIMEFRAME, MODE_LOW, BASE_TERM_FOR_BREAKOUT, 1);
-      if (lowBarIndex == -1) TARGET_SELL_PRICE = -9999999999;
-      else TARGET_SELL_PRICE = iLow(NULL, BREAKOUT_TIMEFRAME, lowBarIndex);
-   }
-
-   if (isZero(TARGET_BUY_PRICE) || isZero(TARGET_SELL_PRICE)) {
-      Print("updateTargetPrice :: Failed to get target Price");
-   }
-   else {
-      PrintFormat("UpdateTargetPrice:: Target Buy : %f, Target Sell : %f", TARGET_BUY_PRICE, TARGET_SELL_PRICE);
-      backupOrderInfo();
-   }
-}
-
 void setup() {
     // 현재 가격이 신저가, 신고가인지 체크하는 로직
-
     // 이전의 고가, 저가가 발생한 날과의 날짜 차이 체크하기
-
     // close 가격이 이전의 고가, 저가 보다 바깥인지 체크하기
-
     // TARGET 가격을 이전의 고가, 저가로 세팅하고  SL은 새로 만들어진 고가, 저가.
 
     int highBarIndex = iHighest(NULL, BREAKOUT_TIMEFRAME, MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
-    
-
     int lowBarIndex = iLowest(NULL, BREAKOUT_TIMEFRAME, MODE_LOW, BASE_TERM_FOR_BREAKOUT, 1);
+
+    PrintFormat("highBarIndex : %d, lowBarIndex : %d", highBarIndex, lowBarIndex);
+    if (highBarIndex == 1) {
+        int previousHighIndex = iHighest(NULL, BREAKOUT_TIMEFRAME, MODE_HIGH, BASE_TERM_FOR_BREAKOUT - 1, 2);
+        PrintFormat("previousHighIndex : %d", previousHighIndex);
+
+        if (previousHighIndex - highBarIndex >= 3) {
+            double day1Close = iClose(NULL, BREAKOUT_TIMEFRAME, 1);
+            double prevHighPrice = iHigh(NULL, BREAKOUT_TIMEFRAME, previousHighIndex);
+            if (day1Close >= prevHighPrice) {
+                TARGET_BUY_PRICE = -1;
+                TARGET_SELL_PRICE = prevHighPrice;
+                TARGET_STOPLOSS_PRICE = iHigh(NULL, BREAKOUT_TIMEFRAME, 1);
+                R_VALUE = fabs(TARGET_SELL_PRICE - TARGET_STOPLOSS_PRICE);
+            }
+        }
+    }
+    else if (lowBarIndex == 1) {
+        int previousLowIndex = iLowest(NULL, BREAKOUT_TIMEFRAME, MODE_LOW, BASE_TERM_FOR_BREAKOUT - 1, 2);
+        PrintFormat("previousLowIndex : %d", previousLowIndex);
+
+        if (previousLowIndex - lowBarIndex >= 3) {
+            double day1Close = iClose(NULL, BREAKOUT_TIMEFRAME, 1);
+            double prevLowPrice = iLow(NULL, BREAKOUT_TIMEFRAME, previousLowIndex);
+            if (day1Close <= prevLowPrice) {
+                TARGET_SELL_PRICE = -1;
+                TARGET_BUY_PRICE = prevLowPrice;
+                TARGET_STOPLOSS_PRICE = iLow(NULL, BREAKOUT_TIMEFRAME, 1);
+                R_VALUE = fabs(TARGET_BUY_PRICE - TARGET_STOPLOSS_PRICE);
+            }
+        }
+    }
 }
