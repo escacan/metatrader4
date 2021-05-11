@@ -18,6 +18,7 @@ input double   RISK = 0.01;
 input double   NOTIONAL_BALANCE = 2000;
 
 ENUM_TIMEFRAMES BREAKOUT_TIMEFRAME = PERIOD_D1;
+ENUM_TIMEFRAMES TRAILING_STOP_TIMEFRAME = PERIOD_M5;
 bool IsPositionExist = false;
 int CURRENT_CMD = OP_BUY; // 0 : Buy  1 : Sell
 int CURRENT_POSITION_TICKET_NUMBER = 0;
@@ -28,6 +29,7 @@ bool SETUP_CONDITION_MADE = false;
 int currentDate = 0;
 int lastCheckedTime=0;
 int BASE_TERM_FOR_BREAKOUT = 20;
+double ORDER_OPEN_PRICE = 0;
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -63,11 +65,8 @@ void OnTick()
         lastCheckedTime = currentCheckTime;
     }
 
-    Comment(StringFormat("R Value : %f\nShow prices\nAsk = %G\nBid = %G\nTargetBuy = %f\nTargetSell = %f\nTARGET_STOPLOSS_PRICE = %f\n",
-        R_VALUE, Ask, Bid, TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE));
-
-    MqlDateTime strDate;
-    TimeToStruct(currentTime, strDate);
+    Comment(StringFormat("R Value : %f\nTargetBuy = %f\nTargetSell = %f\nTARGET_STOPLOSS_PRICE = %f\n",
+        R_VALUE, TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE));
 
     if (IsPositionExist) {
         checkStopLoss();
@@ -133,14 +132,13 @@ void checkSetup() {
     TARGET_SELL_PRICE = 0;
     TARGET_STOPLOSS_PRICE = 0;
     TRADABLE_UNIT_SIZE = 0;
+    ORDER_OPEN_PRICE = 0;
 
     int highBarIndex = iHighest(NULL, BREAKOUT_TIMEFRAME, MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
     int lowBarIndex = iLowest(NULL, BREAKOUT_TIMEFRAME, MODE_LOW, BASE_TERM_FOR_BREAKOUT, 1);
 
-    PrintFormat("highBarIndex : %d, lowBarIndex : %d", highBarIndex, lowBarIndex);
     if (highBarIndex == 1) {
         int previousHighIndex = iHighest(NULL, BREAKOUT_TIMEFRAME, MODE_HIGH, BASE_TERM_FOR_BREAKOUT - 1, 2);
-        PrintFormat("previousHighIndex : %d", previousHighIndex);
 
         if (previousHighIndex - highBarIndex >= 3) {
             double day1Close = iClose(NULL, BREAKOUT_TIMEFRAME, 1);
@@ -156,7 +154,6 @@ void checkSetup() {
     }
     else if (lowBarIndex == 1) {
         int previousLowIndex = iLowest(NULL, BREAKOUT_TIMEFRAME, MODE_LOW, BASE_TERM_FOR_BREAKOUT - 1, 2);
-        PrintFormat("previousLowIndex : %d", previousLowIndex);
 
         if (previousLowIndex - lowBarIndex >= 3) {
             double day1Close = iClose(NULL, BREAKOUT_TIMEFRAME, 1);
@@ -203,11 +200,35 @@ double getUnitSize() {
 void checkStopLoss() {
     double currentPrice = Close[0];
 
-    if (CURRENT_CMD == OP_BUY && isSmaller(currentPrice, TARGET_STOPLOSS_PRICE)) {
-        closeOrder();
+    if (CURRENT_CMD == OP_BUY) {
+        if (isSmaller(currentPrice,TARGET_STOPLOSS_PRICE)) {
+            closeOrder();
+        }
+        else {
+            double curLowPrice = 0;
+            int lowBarIndex = iLowest(NULL, TRAILING_STOP_TIMEFRAME, MODE_LOW, 10, 1);
+            if (lowBarIndex == -1) curLowPrice = -9999999999;
+            else curLowPrice = iLow(NULL, BREAKOUT_TIMEFRAME, lowBarIndex);
+
+            if (isBigger(curLowPrice, TARGET_STOPLOSS_PRICE)) {
+                TARGET_STOPLOSS_PRICE = curLowPrice;
+            }
+        }
     }
-    else if (CURRENT_CMD == OP_SELL && isBigger(currentPrice, TARGET_STOPLOSS_PRICE)) {
-        closeOrder();
+    else if (CURRENT_CMD == OP_SELL) {
+        if (isBigger(currentPrice, TARGET_STOPLOSS_PRICE)) {
+            closeOrder();
+        }
+        else {
+            double curHighPrice = 0;
+            int highBarIndex = iHighest(NULL, TRAILING_STOP_TIMEFRAME, MODE_HIGH, 10, 1);
+            if (highBarIndex == -1) curHighPrice = 99999999999999;
+            else curHighPrice = iHigh(NULL, TRAILING_STOP_TIMEFRAME, highBarIndex);
+
+            if (isSmaller(curHighPrice, TARGET_STOPLOSS_PRICE)) {
+                TARGET_STOPLOSS_PRICE = curHighPrice;
+            }
+        }
     }
 }
 
@@ -243,5 +264,3 @@ void closeOrder() {
         }
     }
 }
-
-
