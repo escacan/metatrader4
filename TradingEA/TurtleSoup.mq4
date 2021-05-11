@@ -77,14 +77,51 @@ void OnTick()
   }
 //+------------------------------------------------------------------+
 
+void checkBreakout() {
+    if (isZero(TRADABLE_UNIT_SIZE) || isZero(TARGET_STOPLOSS_PRICE)) return;
+
+    double currentPrice = Close[0];
+    double openPrice = Close[1];
+    int ticketNum = -1;
+
+    // Buy 포지션에서 돌파하는 경우
+    if (isZero(TARGET_SELL_PRICE)) {
+        if (isBigger(currentPrice, TARGET_BUY_PRICE) && isSmaller(openPrice, TARGET_BUY_PRICE)) {
+            ticketNum = OrderSend(NULL, OP_BUY, TRADABLE_UNIT_SIZE, Ask, 3, 0, 0, "", MAGICNO, 0, clrBlue);
+            if (ticketNum < 0) {
+                Print("OrderSend failed with error #",GetLastError());
+            }
+            else {
+                CURRENT_POSITION_TICKET_NUMBER = ticketNum;
+                IsPositionExist = true;
+                CURRENT_CMD = OP_BUY;
+            }
+        }
+    }
+    // Sell 포지션
+    else if (isZero(TARGET_BUY_PRICE)) {
+        if (isSmaller(currentPrice, TARGET_SELL_PRICE) && isBigger(openPrice, TARGET_SELL_PRICE)) {
+            ticketNum = OrderSend(NULL, OP_SELL, TRADABLE_UNIT_SIZE, Bid, 3, 0, 0, "", MAGICNO, 0, clrBlue);
+            if (ticketNum < 0) {
+                Print("OrderSend failed with error #",GetLastError());
+            }
+            else {
+                CURRENT_POSITION_TICKET_NUMBER = ticketNum;
+                IsPositionExist = true;
+                CURRENT_CMD = OP_SELL;
+            }
+        }
+    }
+}
+
 void checkSetup() {
     // 현재 가격이 신저가, 신고가인지 체크하는 로직
     // 이전의 고가, 저가가 발생한 날과의 날짜 차이 체크하기
     // close 가격이 이전의 고가, 저가 보다 바깥인지 체크하기
     // TARGET 가격을 이전의 고가, 저가로 세팅하고  SL은 새로 만들어진 고가, 저가.
-    TARGET_BUY_PRICE = -1;
-    TARGET_SELL_PRICE = -1;
-    TARGET_STOPLOSS_PRICE = -1;
+    TARGET_BUY_PRICE = 0;
+    TARGET_SELL_PRICE = 0;
+    TARGET_STOPLOSS_PRICE = 0;
     TRADABLE_UNIT_SIZE = 0;
 
     int highBarIndex = iHighest(NULL, BREAKOUT_TIMEFRAME, MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
@@ -151,4 +188,8 @@ double getUnitSize() {
     }
 
     return tradableLotSize;
+}
+
+void trailingStop() {
+
 }
