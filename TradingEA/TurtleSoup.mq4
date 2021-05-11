@@ -190,6 +190,36 @@ double getUnitSize() {
     return tradableLotSize;
 }
 
-void trailingStop() {
 
+void closeOrder() {
+    if (OrderSelect(CURRENT_POSITION_TICKET_NUMBER, SELECT_BY_TICKET, MODE_TRADES)) {
+        if (CURRENT_CMD == OP_BUY) {
+            if (!OrderClose(OrderTicket(), OrderLots(), Bid, 3, White)) {
+                PrintFormat("Fail OrderClose : Order ID = ", CURRENT_POSITION_TICKET_NUMBER);
+            }
+            else {
+                IsPositionExist = false;
+                datetime currentTime = TimeCurrent();
+                MqlDateTime strDate;
+                TimeToStruct(currentTime, strDate);
+                currentDate = strDate.day;
+
+                checkSetup();
+            }
+        }
+        else {
+            if (!OrderClose(OrderTicket(), OrderLots(), Ask, 3, White)) {
+                PrintFormat("Fail OrderClose : Order ID = ", CURRENT_POSITION_TICKET_NUMBER);
+            }
+            else {
+                IsPositionExist = false;
+                datetime currentTime = TimeCurrent();
+                MqlDateTime strDate;
+                TimeToStruct(currentTime, strDate);
+                currentDate = strDate.day;
+
+                checkSetup();
+            }
+        }
+    }
 }
