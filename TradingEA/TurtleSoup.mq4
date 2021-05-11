@@ -69,10 +69,20 @@ void OnTick()
     MqlDateTime strDate;
     TimeToStruct(currentTime, strDate);
 
-    // Daily Update
-    if (strDate.day != currentDate) {
-        currentDate = strDate.day;
-        checkSetup();
+    if (IsPositionExist) {
+        checkStopLoss();
+    }
+    else {
+        MqlDateTime strDate;
+        TimeToStruct(currentTime, strDate);
+
+        // Daily Update
+        if (strDate.day != currentDate) {
+            currentDate = strDate.day;
+            checkSetup();
+        }
+
+        checkBreakout();
     }
   }
 //+------------------------------------------------------------------+
