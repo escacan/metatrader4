@@ -52,15 +52,38 @@ void OnDeinit(const int reason)
 void OnTick()
   {
 //---
+    datetime currentTime = TimeCurrent();
+    int currentCheckTime = TimeMinute(currentTime);
 
+    if (lastCheckedTime == currentCheckTime) {
+        return;
+    }
+    else {
+        lastCheckedTime = currentCheckTime;
+    }
+
+    Comment(StringFormat("R Value : %f\nShow prices\nAsk = %G\nBid = %G\nTargetBuy = %f\nTargetSell = %f\nTARGET_STOPLOSS_PRICE = %f\n",
+        R_VALUE, Ask, Bid, TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE));
+
+    MqlDateTime strDate;
+    TimeToStruct(currentTime, strDate);
+
+    // Daily Update
+    if (strDate.day != currentDate) {
+        currentDate = strDate.day;
+        checkSetup();
+    }
   }
 //+------------------------------------------------------------------+
 
-void setup() {
+void checkSetup() {
     // 현재 가격이 신저가, 신고가인지 체크하는 로직
     // 이전의 고가, 저가가 발생한 날과의 날짜 차이 체크하기
     // close 가격이 이전의 고가, 저가 보다 바깥인지 체크하기
     // TARGET 가격을 이전의 고가, 저가로 세팅하고  SL은 새로 만들어진 고가, 저가.
+    TARGET_BUY_PRICE = -1;
+    TARGET_SELL_PRICE = -1;
+    TARGET_STOPLOSS_PRICE = -1;
 
     int highBarIndex = iHighest(NULL, BREAKOUT_TIMEFRAME, MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
     int lowBarIndex = iLowest(NULL, BREAKOUT_TIMEFRAME, MODE_LOW, BASE_TERM_FOR_BREAKOUT, 1);
