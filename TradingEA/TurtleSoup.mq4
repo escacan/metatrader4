@@ -190,6 +190,16 @@ double getUnitSize() {
     return tradableLotSize;
 }
 
+void checkStopLoss() {
+    double currentPrice = Close[0];
+
+    if (CURRENT_CMD == OP_BUY && isSmaller(currentPrice, TARGET_STOPLOSS_PRICE)) {
+        closeOrder();
+    }
+    else if (CURRENT_CMD == OP_SELL && isBigger(currentPrice, TARGET_STOPLOSS_PRICE)) {
+        closeOrder();
+    }
+}
 
 void closeOrder() {
     if (OrderSelect(CURRENT_POSITION_TICKET_NUMBER, SELECT_BY_TICKET, MODE_TRADES)) {
@@ -223,3 +233,5 @@ void closeOrder() {
         }
     }
 }
+
+
