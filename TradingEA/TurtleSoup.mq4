@@ -23,6 +23,7 @@ int CURRENT_CMD = OP_BUY; // 0 : Buy  1 : Sell
 int CURRENT_POSITION_TICKET_NUMBER = 0;
 double R_VALUE = 0;
 double TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE;
+double TRADABLE_UNIT_SIZE;
 bool SETUP_CONDITION_MADE = false;
 int currentDate = 0;
 int lastCheckedTime=0;
@@ -84,6 +85,7 @@ void checkSetup() {
     TARGET_BUY_PRICE = -1;
     TARGET_SELL_PRICE = -1;
     TARGET_STOPLOSS_PRICE = -1;
+    TRADABLE_UNIT_SIZE = 0;
 
     int highBarIndex = iHighest(NULL, BREAKOUT_TIMEFRAME, MODE_HIGH, BASE_TERM_FOR_BREAKOUT, 1);
     int lowBarIndex = iLowest(NULL, BREAKOUT_TIMEFRAME, MODE_LOW, BASE_TERM_FOR_BREAKOUT, 1);
@@ -101,6 +103,7 @@ void checkSetup() {
                 TARGET_SELL_PRICE = prevHighPrice;
                 TARGET_STOPLOSS_PRICE = iHigh(NULL, BREAKOUT_TIMEFRAME, 1);
                 R_VALUE = fabs(TARGET_SELL_PRICE - TARGET_STOPLOSS_PRICE);
+                TRADABLE_UNIT_SIZE = getUnitSize();
             }
         }
     }
@@ -116,7 +119,36 @@ void checkSetup() {
                 TARGET_BUY_PRICE = prevLowPrice;
                 TARGET_STOPLOSS_PRICE = iLow(NULL, BREAKOUT_TIMEFRAME, 1);
                 R_VALUE = fabs(TARGET_BUY_PRICE - TARGET_STOPLOSS_PRICE);
+                TRADABLE_UNIT_SIZE = getUnitSize();
             }
         }
     }
+}
+
+double getUnitSize() {
+    double tradableLotSize = 0;
+
+    double tickValue = MarketInfo(NULL, MODE_TICKVALUE);
+    double tickSize = MarketInfo(NULL, MODE_TICKSIZE);
+    double tradableMinLotSize = MarketInfo(NULL, MODE_MINLOT);
+
+    if (isZero(tickValue) || isZero(tickSize) || isZero(tradableMinLotSize)) {
+        Print("getUnitSize:: Cannot get MarketInfo");
+    }
+    else {
+        double DOLLAR_PER_POINT = tickValue / tickSize;
+        double dollarVolatility = R_VALUE * DOLLAR_PER_POINT;
+        double maxRiskForAccount = NOTIONAL_BALANCE * RISK;
+        double maxLotBasedOnDollarVolatility = maxRiskForAccount / dollarVolatility;
+        double requiredMinBalance = tradableMinLotSize * dollarVolatility / RISK;
+
+        if (maxLotBasedOnDollarVolatility >= tradableMinLotSize) {
+            tradableLotSize = maxLotBasedOnDollarVolatility - MathMod(maxLotBasedOnDollarVolatility, tradableMinLotSize);
+        }
+        else {
+            PrintFormat("You need at least %f for risk management. Find other item.", requiredMinBalance);
+        }
+    }
+
+    return tradableLotSize;
 }
