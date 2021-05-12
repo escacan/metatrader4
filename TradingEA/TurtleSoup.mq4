@@ -16,9 +16,11 @@
 extern int MAGICNO = 5;
 input double   RISK = 0.01;
 input double   NOTIONAL_BALANCE = 2000;
+input int BASE_TERM_FOR_BREAKOUT = 20;
 
-ENUM_TIMEFRAMES BREAKOUT_TIMEFRAME = PERIOD_D1;
-ENUM_TIMEFRAMES TRAILING_STOP_TIMEFRAME = PERIOD_M5;
+input ENUM_TIMEFRAMES BREAKOUT_TIMEFRAME = PERIOD_D1;
+input ENUM_TIMEFRAMES TRAILING_STOP_TIMEFRAME = PERIOD_M5;
+
 bool IsPositionExist = false;
 int CURRENT_CMD = OP_BUY; // 0 : Buy  1 : Sell
 int CURRENT_POSITION_TICKET_NUMBER = 0;
@@ -28,7 +30,6 @@ double TRADABLE_UNIT_SIZE;
 bool SETUP_CONDITION_MADE = false;
 int currentDate = 0;
 int lastCheckedTime=0;
-int BASE_TERM_FOR_BREAKOUT = 20;
 double ORDER_OPEN_PRICE = 0;
 
 //+------------------------------------------------------------------+
@@ -87,15 +88,18 @@ void OnTick()
 //+------------------------------------------------------------------+
 
 void checkBreakout() {
-    if (isZero(TRADABLE_UNIT_SIZE) || isZero(TARGET_STOPLOSS_PRICE)) return;
+    if (isZero(TARGET_STOPLOSS_PRICE)) return;
 
     double currentPrice = Close[0];
-    double openPrice = Close[1];
     int ticketNum = -1;
 
     // Buy 포지션에서 돌파하는 경우
-    if (isZero(TARGET_SELL_PRICE)) {
-        if (isBigger(currentPrice, TARGET_BUY_PRICE) && isSmaller(openPrice, TARGET_BUY_PRICE)) {
+    if (!isZero(TARGET_BUY_PRICE)) {
+        if (isBigger(currentPrice, TARGET_BUY_PRICE)) {
+            R_VALUE = currentPrice - TARGET_STOPLOSS_PRICE;
+            TRADABLE_UNIT_SIZE = getUnitSize();
+            if (isZero(TRADABLE_UNIT_SIZE)) return;
+
             ticketNum = OrderSend(NULL, OP_BUY, TRADABLE_UNIT_SIZE, Ask, 3, 0, 0, "", MAGICNO, 0, clrBlue);
             if (ticketNum < 0) {
                 Print("OrderSend failed with error #",GetLastError());
@@ -108,8 +112,12 @@ void checkBreakout() {
         }
     }
     // Sell 포지션
-    else if (isZero(TARGET_BUY_PRICE)) {
-        if (isSmaller(currentPrice, TARGET_SELL_PRICE) && isBigger(openPrice, TARGET_SELL_PRICE)) {
+    else if (!isZero(TARGET_SELL_PRICE)) {
+        if (isSmaller(currentPrice, TARGET_SELL_PRICE)) {
+            R_VALUE = TARGET_STOPLOSS_PRICE - currentPrice;
+            TRADABLE_UNIT_SIZE = getUnitSize();
+            if (isZero(TRADABLE_UNIT_SIZE)) return;
+
             ticketNum = OrderSend(NULL, OP_SELL, TRADABLE_UNIT_SIZE, Bid, 3, 0, 0, "", MAGICNO, 0, clrBlue);
             if (ticketNum < 0) {
                 Print("OrderSend failed with error #",GetLastError());
@@ -139,6 +147,7 @@ void checkSetup() {
 
     if (highBarIndex == 1) {
         int previousHighIndex = iHighest(NULL, BREAKOUT_TIMEFRAME, MODE_HIGH, BASE_TERM_FOR_BREAKOUT - 1, 2);
+        PrintFormat("Cur Date : %d :: New High : 1,  Prev High : %d", currentDate, previousHighIndex);
 
         if (previousHighIndex - highBarIndex >= 3) {
             double day1Close = iClose(NULL, BREAKOUT_TIMEFRAME, 1);
@@ -147,13 +156,18 @@ void checkSetup() {
                 TARGET_BUY_PRICE = -1;
                 TARGET_SELL_PRICE = prevHighPrice;
                 TARGET_STOPLOSS_PRICE = iHigh(NULL, BREAKOUT_TIMEFRAME, 1);
-                R_VALUE = fabs(TARGET_SELL_PRICE - TARGET_STOPLOSS_PRICE);
-                TRADABLE_UNIT_SIZE = getUnitSize();
             }
+            else {
+                Print("Close should be above previous High");
+            }
+        }
+        else {
+            Print("Need gap between High Index");
         }
     }
     else if (lowBarIndex == 1) {
         int previousLowIndex = iLowest(NULL, BREAKOUT_TIMEFRAME, MODE_LOW, BASE_TERM_FOR_BREAKOUT - 1, 2);
+        PrintFormat("Cur Date : %d :: New Low : 1,  Prev Low : %d", currentDate, previousLowIndex);
 
         if (previousLowIndex - lowBarIndex >= 3) {
             double day1Close = iClose(NULL, BREAKOUT_TIMEFRAME, 1);
@@ -162,9 +176,13 @@ void checkSetup() {
                 TARGET_SELL_PRICE = -1;
                 TARGET_BUY_PRICE = prevLowPrice;
                 TARGET_STOPLOSS_PRICE = iLow(NULL, BREAKOUT_TIMEFRAME, 1);
-                R_VALUE = fabs(TARGET_BUY_PRICE - TARGET_STOPLOSS_PRICE);
-                TRADABLE_UNIT_SIZE = getUnitSize();
             }
+            else {
+                Print("Close should be below previous Low");
+            }
+        }
+        else {
+            Print("Need gap between Low Index");
         }
     }
 }
@@ -208,7 +226,7 @@ void checkStopLoss() {
             double curLowPrice = 0;
             int lowBarIndex = iLowest(NULL, TRAILING_STOP_TIMEFRAME, MODE_LOW, 10, 1);
             if (lowBarIndex == -1) curLowPrice = -9999999999;
-            else curLowPrice = iLow(NULL, BREAKOUT_TIMEFRAME, lowBarIndex);
+            else curLowPrice = iLow(NULL, TRAILING_STOP_TIMEFRAME, lowBarIndex);
 
             if (isBigger(curLowPrice, TARGET_STOPLOSS_PRICE)) {
                 TARGET_STOPLOSS_PRICE = curLowPrice;
