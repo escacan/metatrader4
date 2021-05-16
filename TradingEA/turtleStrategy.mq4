@@ -18,8 +18,8 @@ extern int MAGICNO = 3;
 input int      MARKET_GROUP = 0; // 0: Forex, 1: Metal, 2: Crypto, 3: Energy
 input double   MAX_LOT_SIZE_PER_ORDER = 50.0;
 input double   RISK = 0.01;
-input double   NOTIONAL_BALANCE = 3000;
-input int      BASE_TERM_FOR_BREAKOUT = 55;
+input double   NOTIONAL_BALANCE = 2000;
+input int      BASE_TERM_FOR_BREAKOUT = 70;
 input int      BASE_TERM_FOR_PROFIT = 10;
 input int      MAXIMUM_UNIT_COUNT = 4;
 input double   UNIT_STEP_UP_PORTION = 0.5;
@@ -28,7 +28,7 @@ input ENUM_TIMEFRAMES BREAKOUT_TIMEFRAME = PERIOD_D1;
 input bool     LOAD_BACKUP = true;
 
 //--- Global Var
-double TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE;
+double TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE, TARGET_EXIT_PRICE;
 int CURRENT_UNIT_COUNT = 0;
 int CURRENT_CMD = OP_BUY; // 0 : Buy  1 : Sell
 double N_VALUE = 0;
@@ -81,7 +81,7 @@ void OnTick()
       lastCheckedTime = currentCheckTime;
    }
 
-   Comment(StringFormat("Dollar per point : %f\nN Value : %f\nCurrent Unit Count : %d\nShow prices\nAsk = %G\nBid = %G\nTargetBuy = %f\nTargetSell = %f\nTARGET_STOPLOSS_PRICE = %f\n", DOLLAR_PER_POINT, N_VALUE, CURRENT_UNIT_COUNT,Ask,Bid,TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE));
+   Comment(StringFormat("Dollar per point : %f\nN Value : %f\nCurrent Unit Count : %d\nShow prices\nAsk = %G\nBid = %G\nTargetBuy = %f\nTargetSell = %f\nTARGET_STOPLOSS_PRICE = %f\nTARGET_EXIT_PRICE = %f", DOLLAR_PER_POINT, N_VALUE, CURRENT_UNIT_COUNT,Ask,Bid,TARGET_BUY_PRICE, TARGET_SELL_PRICE, TARGET_STOPLOSS_PRICE, TARGET_EXIT_PRICE));
 
    MqlDateTime strDate;
    TimeToStruct(currentTime, strDate);
@@ -182,6 +182,8 @@ void updateTargetPrice() {
       int lowBarIndex = iLowest(SYMBOL, BREAKOUT_TIMEFRAME, MODE_LOW, BASE_TERM_FOR_BREAKOUT, 1);
       if (lowBarIndex == -1) TARGET_SELL_PRICE = -9999999999;
       else TARGET_SELL_PRICE = iLow(SYMBOL, BREAKOUT_TIMEFRAME, lowBarIndex);
+
+      TARGET_EXIT_PRICE = 0;
    }
 
    if (isZero(TARGET_BUY_PRICE) || isZero(TARGET_SELL_PRICE)) {
@@ -292,6 +294,7 @@ void closeAllOrders () {
       }
 
       if (CURRENT_CMD == OP_BUY) {
+         TARGET_EXIT_PRICE = profitBuyPrice;
          if (isSmaller(currentPrice,TARGET_STOPLOSS_PRICE)) {
             CURRENT_UNIT_COUNT--;
             if (CURRENT_UNIT_COUNT == 0) N_VALUE = 0;
@@ -341,6 +344,7 @@ void closeAllOrders () {
          }
       }
       else if (CURRENT_CMD == OP_SELL) {
+         TARGET_EXIT_PRICE = profitSellPrice;
          if (isBigger(currentPrice, TARGET_STOPLOSS_PRICE) ) {
             CURRENT_UNIT_COUNT--;
             if (CURRENT_UNIT_COUNT == 0) N_VALUE = 0;
