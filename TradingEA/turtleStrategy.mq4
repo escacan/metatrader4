@@ -407,16 +407,17 @@ void canSendOrder () {
 
    double prevClosePrice = Close[1];
    double currentPrice = Close[0];
-   double openPrice = Open[0];
+   double lowPrice = Low[0];
+   double highPrice = High[0];
 
-   if (isZero(currentPrice) || isZero(openPrice)) {
+   if (isZero(currentPrice) || isZero(lowPrice) || isZero(highPrice)) {
       Print("canSendOrder :: Failed to Get current Price Data");
       return;
    }
 
 
    if (CURRENT_UNIT_COUNT > 0) {
-      if(isBigger(currentPrice, TARGET_BUY_PRICE) && isSmaller(openPrice, TARGET_BUY_PRICE) && CURRENT_CMD == OP_BUY) {
+      if(isBigger(currentPrice, TARGET_BUY_PRICE) && isSmaller(lowPrice, TARGET_BUY_PRICE) && CURRENT_CMD == OP_BUY) {
          if (!checkTotalMarketsUnitCount(CURRENT_CMD)) return;
 
          PrintFormat("Send Buy Order On Cur Price : %f, Target Buy Price : %f", currentPrice, TARGET_BUY_PRICE);
@@ -428,7 +429,7 @@ void canSendOrder () {
          PrintFormat("Send Buy Order On Cur Price : %f, Target Buy Price : %f", currentPrice, TARGET_BUY_PRICE);
          sendOrders(OP_BUY, Ask);
       }
-      else if (isSmaller(currentPrice, TARGET_SELL_PRICE) && isBigger(openPrice, TARGET_SELL_PRICE) && CURRENT_CMD == OP_SELL) {
+      else if (isSmaller(currentPrice, TARGET_SELL_PRICE) && isBigger(highPrice, TARGET_SELL_PRICE) && CURRENT_CMD == OP_SELL) {
          if (!checkTotalMarketsUnitCount(CURRENT_CMD)) return;
 
          PrintFormat("Send Sell Order On Cur Price : %f, Target Sell Price : %f", currentPrice, TARGET_SELL_PRICE);
@@ -442,7 +443,7 @@ void canSendOrder () {
       }
    }
    else {
-      if(isBigger(currentPrice, TARGET_BUY_PRICE) && isSmaller(openPrice, TARGET_BUY_PRICE)) {
+      if(isBigger(currentPrice, TARGET_BUY_PRICE) && isSmaller(lowPrice, TARGET_BUY_PRICE)) {
          if (!checkTotalMarketsUnitCount(OP_BUY)) return;
 
          PrintFormat("Send Buy Order On Cur Price : %f, Target Buy Price : %f", currentPrice, TARGET_BUY_PRICE);
@@ -454,7 +455,7 @@ void canSendOrder () {
          PrintFormat("Send Buy Order On Cur Price : %f, Target Buy Price : %f", currentPrice, TARGET_BUY_PRICE);
          sendOrders(OP_BUY, Ask);
       }
-      else if (isSmaller(currentPrice, TARGET_SELL_PRICE) && isBigger(openPrice, TARGET_SELL_PRICE)) {
+      else if (isSmaller(currentPrice, TARGET_SELL_PRICE) && isBigger(highPrice, TARGET_SELL_PRICE)) {
          if (!checkTotalMarketsUnitCount(OP_SELL)) return;
 
          PrintFormat("Send Sell Order On Cur Price : %f, Target Sell Price : %f", currentPrice, TARGET_SELL_PRICE);
